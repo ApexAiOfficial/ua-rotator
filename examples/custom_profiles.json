@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "purpose": "Minimal example profile"
+  },
+  "entries": [
+    {
+      "user_agent": "ExampleClient/1.0 desktop",
+      "weight": 3.0
+    },
+    {
+      "user_agent": "ExampleClient/1.0 mobile",
+      "weight": 1.0
+    }
+  ]
+}
