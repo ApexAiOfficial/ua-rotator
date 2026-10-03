@@ -1,10 +1,71 @@
+# Python bytecode and caches
 __pycache__/
 *.py[cod]
-*.egg-info/
+*$py.class
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.hypothesis/
+.tox/
+.nox/
+
+# Coverage
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
+
+# Build and packaging artifacts
 build/
 dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+*.whl
+*.pyz
+
+# Virtual environments
 .venv/
+.venv*/
+venv/
+env/
+ENV/
+.validation-venv/
+.python-version
+
+# Secrets, credentials, and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa*
+id_ed25519*
+credentials*.json
+secrets*.json
+*secret*.json
+.netrc
+.pypirc
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local agent and tool settings
+.claude/settings.local.json
+
+# Temporary files
 *.tmp
+*.log

@@ -9,6 +9,7 @@ description = "Framework-agnostic weighted User-Agent rotation with an optional 
 readme = "README.md"
 requires-python = ">=3.10"
 license = "LicenseRef-Proprietary"
+license-files = ["LICENSE.txt"]
 authors = [{name = "ApexAI"}]
 keywords = ["user-agent", "scrapy", "crawler", "http", "middleware"]
 classifiers = [
@@ -28,6 +29,13 @@ test = ["pytest>=8", "coverage[toml]>=7"]
 
 [project.scripts]
 apex-ua-rotator = "apex_ua_rotator.cli:main"
+
+[project.urls]
+Homepage = "https://apexaiofficial.com"
+Repository = "https://github.com/ApexAiOfficial/ua-rotator"
+Documentation = "https://github.com/ApexAiOfficial/ua-rotator#readme"
+Changelog = "https://github.com/ApexAiOfficial/ua-rotator/blob/main/CHANGELOG.md"
+Issues = "https://github.com/ApexAiOfficial/ua-rotator/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

@@ -74,7 +74,7 @@ def run_scrapy_smoke(
         raise ScrapySmokeUnavailable(
             "Scrapy is not installed in the active Python environment. "
             "Install the optional dependency with: "
-            "python -m pip install 'apex-ua-rotator[scrapy]'"
+            "python -m pip install 'Scrapy>=2.11,<3'"
         ) from exc
 
     from .scrapy import ScrapyUserAgentMiddleware

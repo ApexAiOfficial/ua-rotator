@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://apexai.local/schemas/user-agent-profiles-v1.schema.json",
+  "$id": "https://raw.githubusercontent.com/ApexAiOfficial/ua-rotator/main/user_agent_profiles.schema.json",
   "title": "Apex User-Agent Profile Document",
   "type": "object",
   "additionalProperties": false,

@@ -2,6 +2,8 @@
 
 These launchers locate and run the newest Apex UA Rotator one-file installer without assuming that it is stored in a Download folder.
 
+Build the one-file installer first; see [Installation](../README.md#one-command-installer) in the main README. Put the installer somewhere inside the storage locations described below. The launcher itself can be run from any directory with Python 3.10+.
+
 ## Phone / Android
 
 ```bash
