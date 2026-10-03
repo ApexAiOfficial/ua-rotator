@@ -61,8 +61,16 @@ rotator = UserAgentRotator.from_file("profiles.json")
 print(rotator.to_document())
 ```
 
-The machine-readable schema is available at:
+The machine-readable JSON Schema (draft 2020-12) is packaged at:
 
 ```text
 src/apex_ua_rotator/user_agent_profiles.schema.json
 ```
+
+An identical copy is kept at the repository root as `user_agent_profiles.schema.json`. Its `$id` is:
+
+```text
+https://raw.githubusercontent.com/ApexAiOfficial/ua-rotator/main/user_agent_profiles.schema.json
+```
+
+The schema describes document structure. The loader additionally rejects duplicate User-Agent strings, whitespace-padded values, non-finite weights, and documents with no positive weight.

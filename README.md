@@ -6,8 +6,11 @@ The core package uses only the Python standard library. Scrapy support is option
 
 - **Version:** 1.2.1
 - **Python:** 3.10+
-- **License:** LicenseRef-Proprietary
+- **License:** Proprietary (`LicenseRef-Proprietary`); see [Licensing](#license)
 - **Default profile:** `global_2026-07-31.json`
+- **Repository:** <https://github.com/ApexAiOfficial/ua-rotator>
+
+> **Source-available, not open source.** This repository is public so the code and documentation can be reviewed. Using, copying, modifying, or redistributing the software requires a separate written agreement with ApexAI. See [`LICENSE.txt`](LICENSE.txt).
 
 ## What it does
 
@@ -62,6 +65,17 @@ src/apex_ua_rotator/
     └── global_2026-07-31.md
 ```
 
+The rest of the repository:
+
+```text
+docs/                               # profile format, Scrapy, browser, validation guides
+examples/                           # script, Scrapy settings, and custom profile examples
+launchers/                          # phone and computer locators for the one-file installer
+tests/                              # pytest suite
+tools/                              # profile validator and one-file installer builder
+user_agent_profiles.schema.json     # copy of the packaged JSON Schema
+```
+
 Compatibility modules remain available for earlier integrations:
 
 ```python
@@ -73,15 +87,13 @@ New integrations should use the canonical `apex_ua_rotator` package.
 
 ## Installation
 
-### Install from a wheel
-
-```bash
-python3 -m pip install apex_ua_rotator-1.2.1-py3-none-any.whl
-```
+The package is not published to PyPI, and prebuilt release artifacts (the wheel and the one-file installer) are not attached to this repository. Install from a source checkout, or build the artifacts yourself as shown below.
 
 ### Install from source
 
 ```bash
+git clone https://github.com/ApexAiOfficial/ua-rotator.git
+cd ua-rotator
 python3 -m pip install .
 ```
 
@@ -91,9 +103,23 @@ python3 -m pip install .
 python3 -m pip install ".[scrapy]"
 ```
 
-### One-command release installer
+### Build and install a wheel
 
-The release bundle includes `apex-ua-rotator-1.2.1-one-shot.pyz`. It embeds the wheel, installs it into the active Python interpreter, validates the bundled profile, and runs the localhost Scrapy smoke test when Scrapy is already installed.
+```bash
+python3 -m pip wheel --no-deps . -w dist
+python3 -m pip install dist/apex_ua_rotator-1.2.1-py3-none-any.whl
+```
+
+### One-command installer
+
+`apex-ua-rotator-1.2.1-one-shot.pyz` is a single file that embeds the wheel, installs it into the active Python interpreter, validates the bundled profile, and runs the localhost Scrapy smoke test when Scrapy is already installed. Build it from the wheel above:
+
+```bash
+python3 tools/build_one_shot.py dist/apex_ua_rotator-1.2.1-py3-none-any.whl \
+  -o dist/apex-ua-rotator-1.2.1-one-shot.pyz
+```
+
+Then run it with any Python 3.10+ interpreter:
 
 ```bash
 python3 apex-ua-rotator-1.2.1-one-shot.pyz
@@ -112,7 +138,7 @@ The one-shot tool does not download or install Scrapy. If Scrapy is absent, the 
 
 ### Locator launchers
 
-The release also includes two small locator scripts for environments where the one-file installer may be buried among many files. They forward any additional command-line arguments to the installer.
+Two small locator scripts in [`launchers/`](launchers/) find and run the one-file installer in environments where it may be buried among many files. Copy the launcher to the target device (or run it from a checkout); it forwards any additional command-line arguments to the installer.
 
 **Phone / Android**
 
@@ -334,8 +360,16 @@ See [`docs/SCRAPY.md`](docs/SCRAPY.md) for complete behavior and examples.
 
 ### Core test suite
 
+Install the test dependencies first:
+
 ```bash
-python3 -m compileall -q src tests tools
+python3 -m pip install ".[test]"
+```
+
+Then run:
+
+```bash
+python3 -m compileall -q src tests tools examples launchers
 python3 -m pytest -q
 python3 tools/validate_profiles.py
 ```
@@ -371,8 +405,14 @@ The smoke test contacts only a temporary HTTP server on `127.0.0.1`. It verifies
 - [`docs/SCRAPY.md`](docs/SCRAPY.md)
 - [`docs/BROWSER_USAGE.md`](docs/BROWSER_USAGE.md)
 - [`docs/VALIDATION.md`](docs/VALIDATION.md)
+- [`launchers/README.md`](launchers/README.md)
 - [`examples/`](examples/)
+- [`CHANGELOG.md`](CHANGELOG.md)
 
 ## License
 
-This package is proprietary. See [`LICENSE.txt`](LICENSE.txt).
+Copyright (c) 2026 ApexAI. All rights reserved.
+
+This software is proprietary. The repository is publicly visible for review only; no permission is granted to use, copy, modify, publish, distribute, sublicense, or sell it except under a separate written agreement with ApexAI. See [`LICENSE.txt`](LICENSE.txt).
+
+For licensing inquiries, contact ApexAI through <https://apexaiofficial.com/contact>.

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+Repository and documentation changes for the public source-available release. Selection, validation, and middleware behavior are unchanged.
+
+### Changed
+
+- Replaced the internal `apexai.local` JSON Schema `$id` with the public repository URL.
+- Added project URLs and an explicit `license-files` entry to the package metadata.
+- Documented that the code is source-available under the proprietary license and that use requires a separate written agreement.
+- Corrected installation instructions: release artifacts are not published, so the README now shows how to install from a checkout and how to build the wheel and one-file installer.
+- Documented the test-dependency install step and the repository layout.
+- The Scrapy smoke test's missing-dependency message now suggests installing Scrapy directly instead of `apex-ua-rotator[scrapy]`, which would resolve against PyPI where this package is not published.
+- Expanded `.gitignore` to cover environment files, credentials and keys, virtual environments, tool caches, and build artifacts.
+
 ## 1.2.1 — 2026-08-01
 
 ### Added
