@@ -288,7 +288,7 @@ def test_from_crawler_with_entries_and_file(tmp_path):
 
 def test_from_crawler_defaults_to_bundled_profile_and_accepts_named_bundle():
     default = ScrapyUserAgentMiddleware.from_crawler(FakeCrawler({}))
-    assert len(default.rotator) == 63
+    assert len(default.rotator) == 85
 
     named = ScrapyUserAgentMiddleware.from_crawler(
         FakeCrawler({"UA_ROTATOR_BUNDLED_PROFILE": "global_2026-07-31.json"})
@@ -314,7 +314,7 @@ def test_from_crawler_can_be_disabled_explicitly():
     with pytest.raises(expected):
         ScrapyUserAgentMiddleware.from_crawler(FakeCrawler({"UA_ROTATOR_ENABLED": False}))
     enabled = ScrapyUserAgentMiddleware.from_crawler(FakeCrawler({"UA_ROTATOR_ENABLED": "1"}))
-    assert len(enabled.rotator) == 63
+    assert len(enabled.rotator) == 85
 
 
 def test_from_crawler_rejects_invalid_bundled_profile_setting():
@@ -529,7 +529,7 @@ def test_from_crawler_logs_effective_configuration(caplog):
         ScrapyUserAgentMiddleware.from_crawler(
             FakeCrawler({"UA_ROTATOR_SCOPE": "domain", "UA_ROTATOR_REFRESH_ON": "retry"})
         )
-    assert "63 profiles from bundled profile 'global_2026-07-31-r2.json'" in caplog.text
+    assert "85 profiles from bundled profile 'global_2026-11-14.json'" in caplog.text
     assert "scope=domain" in caplog.text
     assert "refresh_on=['retry']" in caplog.text
 

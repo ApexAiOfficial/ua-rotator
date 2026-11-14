@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Hashable, Iterable, Mapping, Protocol, Sequence
 
 SCHEMA_VERSION = 1
-DEFAULT_PROFILE_NAME = "global_2026-07-31-r2.json"
+DEFAULT_PROFILE_NAME = "global_2026-11-14.json"
 _ALLOWED_DOCUMENT_FIELDS = frozenset({"schema_version", "metadata", "entries"})
 _ALLOWED_ENTRY_FIELDS = frozenset({"user_agent", "weight"})
 _IS_WINDOWS = os.name == "nt"

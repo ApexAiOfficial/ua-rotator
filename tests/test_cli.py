@@ -9,7 +9,7 @@ from apex_ua_rotator.cli import main
 def test_info_uses_bundled_profile(capsys):
     assert main(["info"]) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload["entries"] == 63
+    assert payload["entries"] == 85
     assert payload["weight_total"] == 100.0
     assert payload["unique_user_agents"] is True
 
@@ -68,9 +68,10 @@ def test_profiles_lists_bundled_snapshots_and_default(capsys):
     assert main(["profiles"]) == 0
     profiles = json.loads(capsys.readouterr().out)["profiles"]
     names = {profile["name"]: profile for profile in profiles}
-    assert names["global_2026-07-31-r2.json"]["default"] is True
+    assert names["global_2026-11-14.json"]["default"] is True
     assert names["global_2026-07-31.json"]["default"] is False
-    assert all(profile["entries"] == 63 for profile in profiles)
+    expected = {"global_2026-11-14.json": 85, "global_2026-07-31-r2.json": 63, "global_2026-07-31.json": 63}
+    assert {name: profile["entries"] for name, profile in names.items()} == expected
 
 
 def test_info_reports_profile_age_and_source(capsys):
@@ -103,7 +104,7 @@ def test_version_constant_matches_package_metadata_and_changelog():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
-    assert __version__ == "1.3.0"
+    assert __version__ == "1.4.0"
     assert f"## {__version__} " in (root / "CHANGELOG.md").read_text(encoding="utf-8")
 
 

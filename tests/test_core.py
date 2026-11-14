@@ -253,10 +253,10 @@ def test_save_no_clobber_overwrite_permissions_and_missing_parent(tmp_path):
 
 def test_bundled_profile_and_name_validation():
     rotator = UserAgentRotator.from_bundled_profile()
-    assert len(rotator) == 63
-    assert rotator.metadata["profile_revision"] == "2026-07-31.2"
+    assert len(rotator) == 85
+    assert rotator.metadata["profile_revision"] == "2026-11-14.1"
     assert math.isclose(sum(entry.weight for entry in rotator.entries), 100.0)
-    assert DEFAULT_PROFILE_NAME == "global_2026-07-31-r2.json"
+    assert DEFAULT_PROFILE_NAME == "global_2026-11-14.json"
 
     for invalid in ("", "../x.json", "path/x.json", 123):
         with pytest.raises(ValueError):
@@ -287,7 +287,7 @@ def test_concurrent_select_and_mutation_do_not_corrupt_state():
 
 def test_previous_profile_revision_stays_bundled_for_reproducibility():
     original = UserAgentRotator.from_bundled_profile("global_2026-07-31.json")
-    revised = UserAgentRotator.from_bundled_profile()
+    revised = UserAgentRotator.from_bundled_profile("global_2026-07-31-r2.json")
     assert original.metadata["profile_revision"] == "2026-07-31.1"
     assert revised.metadata["supersedes"] == "global_2026-07-31.json"
     changed = {e.user_agent for e in original.entries} ^ {e.user_agent for e in revised.entries}

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.4.0 — 2026-11-14
+
+Profile refresh. The public Python API is unchanged; only the default profile moves. Pin `global_2026-07-31-r2.json` to keep 1.3.0's output.
+
+### Added
+
+- New default profile `global_2026-11-14.json` (revision `2026-11-14.1`, 85 entries).
+  - **Market shares:** StatCounter's October 2026 worldwide figures for platform, browser family, browser version, OS, Windows version and iOS version.
+  - **Releases:** current as of 14 November 2026: Chrome 156–158, Edge 156–157, Firefox 158–160, Opera 139–140, Safari 26.6–27.2 on macOS, Chrome for iOS 157–158 and Firefox for iOS 159–160. Safari on iPhone and iPad follows the measured iOS versions, 18.6 to 27.2.
+  - **Fit:** the desktop browser-by-OS table is fitted to both measured marginals. Every source and its retrieval date are listed in `global_2026-11-14.md`.
+  - **Exclusions:** Samsung Internet, Opera for Android, Edge for Android and ChromeOS, because no verified current string exists for them.
+
+### Changed
+
+- **Frozen iOS token:** Safari on iOS and iPadOS 26 and 27 entries carry the frozen OS token `18_7` that current devices send. The July snapshot used `18_6`, Safari 26.0's value.
+- **Chrome for iOS:** entries carry the device's real iOS version as `major_minor_patch` (`iPhone OS 26_6_1`), which Chrome for iOS sends instead of Safari's frozen token. They follow Safari's modeled iOS distribution, which is why the profile has 85 entries.
+- **Lint:** `tools/profile_lint.py` accepts a patch release in Safari's `Version/` token on iOS (`Version/26.6.1`, `Version/27.0.1`), as observed in current traffic. It accepts a three-part OS token only for Chrome for iOS, and it requires Safari 26 and later to carry a frozen `18_x` token.
+- **Docs:** README, docs and the banners now refer to the new default. `global_2026-07-31-r2.json` and `global_2026-07-31.json` stay bundled, unchanged.
+
 ## 1.3.0 — 2026-11-14
 
 Reliability, Scrapy-integration, and release-engineering upgrade. The public Python API is backward compatible: existing code, settings, compatibility modules, and pinned profile names keep working. Behavior changes are listed under **Changed**.

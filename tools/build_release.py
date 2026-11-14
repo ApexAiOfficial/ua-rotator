@@ -16,7 +16,7 @@ Usage (from the repository root)::
     python3 tools/build_release.py --validate --scrapy-python /path/to/venv/bin/python
 
     # Rebuild and compare against a release's published checksums
-    gh release download v1.3.0 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
+    gh release download v1.4.0 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
     python3 tools/build_release.py --out rebuild --compare published/SHA256SUMS
 
 ``--validate`` needs pytest, coverage, and jsonschema in the running

@@ -9,7 +9,13 @@ it must agree with how that browser actually formats its User-Agent:
   (https://www.chromium.org/updates/ua-reduction/). Windows 7 is accepted only
   with Chrome 109, its final supported release.
 * Firefox repeats its version in ``rv:`` (and in ``Gecko/`` on Android).
-* Safari on iOS before version 26 reports a ``Version/`` equal to the OS token.
+* Safari on iOS before version 26 reports a ``Version/`` equal to the OS token. From iOS 26, Safari freezes
+  the OS token (``18_7`` in current traffic) and ``Version/`` carries the real Safari release, including a
+  patch level when one shipped (``Version/26.6.1``, ``Version/27.0.1``). A Safari 26+ entry must carry a
+  frozen ``18_x`` token.
+* Chrome for iOS (``CriOS``) builds its own OS token from the device's real iOS version, as
+  ``major_minor_patch`` (``26_6_1``, ``18_7_0``), so a three-part token is accepted there
+  (Chromium ``ios/web/common/user_agent.mm``, ``kUserAgentBugFixVersion``).
 * Crawler, headless, and tooling tokens are never allowed.
 
 The checks are maintainer tooling for curating profiles; they are not part of
@@ -57,9 +63,9 @@ _SAFARI_MAC = re.compile(
     r"\(KHTML, like Gecko\) Version/\d+\.\d+ Safari/605\.1\.15$"
 )
 _IOS = re.compile(
-    r"^Mozilla/5\.0 \((?:iPhone; CPU iPhone OS|iPad; CPU OS) (?P<os>\d+_\d+) like Mac OS X\) "
+    r"^Mozilla/5\.0 \((?:iPhone; CPU iPhone OS|iPad; CPU OS) (?P<os>\d+_\d+(?:_\d+)?) like Mac OS X\) "
     r"AppleWebKit/605\.1\.15 \(KHTML, like Gecko\) "
-    r"(?:Version/(?P<safari>\d+\.\d+)|CriOS/\d+\.\d+\.\d+\.\d+|FxiOS/\d+\.\d+) "
+    r"(?:Version/(?P<safari>\d+\.\d+(?:\.\d+)?)|(?P<crios>CriOS)/\d+\.\d+\.\d+\.\d+|FxiOS/\d+\.\d+) "
     r"Mobile/15E148 Safari/604\.1$"
 )
 
@@ -96,9 +102,13 @@ def lint_user_agent(user_agent: str) -> list[str]:
     if _SAFARI_MAC.match(user_agent):
         return []
     if match := _IOS.match(user_agent):
-        safari = match["safari"]
-        if safari and int(safari.split(".")[0]) < 26 and match["os"].replace("_", ".") != safari:
-            return [f"Safari Version/{safari} does not match iOS {match['os']}"]
+        safari, os_token = match["safari"], match["os"]
+        if os_token.count("_") == 2 and not match["crios"]:
+            return [f"a three-part OS token ({os_token}) is accepted only for Chrome for iOS"]
+        if safari and int(safari.split(".")[0]) >= 26 and not re.fullmatch(r"18_\d+", os_token):
+            return [f"Safari Version/{safari} needs the frozen 18_x OS token, not {os_token}"]
+        if safari and int(safari.split(".")[0]) < 26 and os_token.replace("_", ".") != safari:
+            return [f"Safari Version/{safari} does not match iOS {os_token}"]
         return []
     return ["does not match any known browser family format"]
 

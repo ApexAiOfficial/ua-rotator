@@ -62,7 +62,7 @@ The tool:
 To build only the one-file installer from a wheel:
 
 ```bash
-python3 tools/build_one_shot.py dist/release/apex_ua_rotator-1.3.0-py3-none-any.whl -o apex-ua-rotator-1.3.0-one-shot.pyz
+python3 tools/build_one_shot.py dist/release/apex_ua_rotator-1.4.0-py3-none-any.whl -o apex-ua-rotator-1.4.0-one-shot.pyz
 ```
 
 ## Verifying a published release
@@ -70,9 +70,9 @@ python3 tools/build_one_shot.py dist/release/apex_ua_rotator-1.3.0-py3-none-any.
 Anyone can check a release independently:
 
 ```bash
-gh release download v1.3.0 --repo ApexAiOfficial/ua-rotator --dir published
+gh release download v1.4.0 --repo ApexAiOfficial/ua-rotator --dir published
 (cd published && sha256sum --check SHA256SUMS)       # integrity
-git checkout v1.3.0
+git checkout v1.4.0
 python3 tools/build_release.py --out rebuild --compare published/SHA256SUMS   # reproducibility
 ```
 
@@ -83,8 +83,8 @@ The comparison works in both directions: an asset that is published but not rebu
 ## One-file installer
 
 ```bash
-python3 apex-ua-rotator-1.3.0-one-shot.pyz --verify-payload   # checksum only, no install
-python3 apex-ua-rotator-1.3.0-one-shot.pyz --report result.json
+python3 apex-ua-rotator-1.4.0-one-shot.pyz --verify-payload   # checksum only, no install
+python3 apex-ua-rotator-1.4.0-one-shot.pyz --report result.json
 ```
 
 The installer verifies the embedded wheel's SHA-256 before installing it, then checks the installation from a fresh interpreter.

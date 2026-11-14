@@ -32,14 +32,14 @@ from apex_ua_rotator import UserAgentRotator
 
 rotator = UserAgentRotator.from_bundled_profile(policy="per_key")
 rotator.select(key="example.com")   # same value for example.com on every call, e.g.
-# 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36'
+# 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36'
 ```
 
 ## Why UA Rotator
 
 | | |
 |---|---|
-| ⚖️ **Weighted by real usage** | The bundled profile models global desktop, mobile, and tablet browser share: 63 internally consistent strings across Chrome, Safari, Edge, Firefox, Samsung Internet, and Opera, with weights totaling exactly 100. |
+| ⚖️ **Weighted by real usage** | The bundled profile models global desktop, mobile, and tablet browser share: 85 internally consistent strings across Chrome, Safari, Edge, Firefox, and Opera on desktop, Android, and iOS, with weights totaling exactly 100. |
 | 🧷 **Sticky identities** | One identity per request, per process, or per any key you choose: domain, account, cookie jar, proxy. A bounded LRU cache keeps memory flat on large crawls. |
 | 🔁 **Refresh that actually changes** | `refresh()` replaces a blocked identity with a *different* one, and concurrent failures in one scope converge on a single replacement instead of churning. |
 | 🕷️ **Scrapy-native** | The downloader middleware follows Scrapy's request lineage through retries and redirects. It has five scopes, explicit refresh rules, and full stats, and it is tested against Scrapy 2.11 and the latest 2.x. |
@@ -62,18 +62,18 @@ UA Rotator is distributed through [GitHub Releases](https://github.com/ApexAiOff
 **Wheel (pip):**
 
 ```bash
-python -m pip install "https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.3.0/apex_ua_rotator-1.3.0-py3-none-any.whl"
+python -m pip install "https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.4.0/apex_ua_rotator-1.4.0-py3-none-any.whl"
 
 # with the optional Scrapy dependency
-python -m pip install "apex-ua-rotator[scrapy] @ https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.3.0/apex_ua_rotator-1.3.0-py3-none-any.whl"
+python -m pip install "apex-ua-rotator[scrapy] @ https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.4.0/apex_ua_rotator-1.4.0-py3-none-any.whl"
 ```
 
-**One-file installer:** download `apex-ua-rotator-1.3.0-one-shot.pyz` from the release, then run:
+**One-file installer:** download `apex-ua-rotator-1.4.0-one-shot.pyz` from the release, then run:
 
 ```bash
-python3 apex-ua-rotator-1.3.0-one-shot.pyz                  # install, verify, smoke-test Scrapy if present
-python3 apex-ua-rotator-1.3.0-one-shot.pyz --install-only
-python3 apex-ua-rotator-1.3.0-one-shot.pyz --verify-payload # check the embedded wheel only
+python3 apex-ua-rotator-1.4.0-one-shot.pyz                  # install, verify, smoke-test Scrapy if present
+python3 apex-ua-rotator-1.4.0-one-shot.pyz --install-only
+python3 apex-ua-rotator-1.4.0-one-shot.pyz --verify-payload # check the embedded wheel only
 ```
 
 The installer checks the embedded wheel's SHA-256 before installing and verifies the result in a fresh interpreter. If you don't know where the file was saved, the [phone and computer locators](launchers/README.md) find the newest valid copy, print its checksum, and run exactly the bytes they checked (`--expect-sha256` pins a release).
@@ -100,7 +100,7 @@ from apex_ua_rotator import UserAgentRotator
 # The bundled, dated global profile; no data file needed.
 rotator = UserAgentRotator.from_bundled_profile()
 rotator.select()                     # weighted pick on every call
-rotator.metadata["as_of"]            # '2026-07-31'
+rotator.metadata["as_of"]            # '2026-11-14'
 
 # Your own weighted list: weights are relative, not percentages.
 custom = UserAgentRotator([("ExampleClient/1.0 desktop", 3), ("ExampleClient/1.0 mobile", 1)])
@@ -238,7 +238,7 @@ A profile is a small, versioned JSON document:
 }
 ```
 
-- **Dated and replaceable.** The default `global_2026-07-31-r2.json` is a market model as of 31 July 2026; `apex-ua-rotator info` reports its age. Snapshots are never edited in place: corrections ship as numbered revisions (revision 1 stays bundled for reproducibility), and new market data ships as new dated files.
+- **Dated and replaceable.** The default `global_2026-11-14.json` is a market model as of 14 November 2026; `apex-ua-rotator info` reports its age. Snapshots are never edited in place: corrections ship as numbered revisions (revision 1 stays bundled for reproducibility), and new market data ships as new dated files.
 - **Strict.** The loader rejects unknown fields, duplicate JSON keys, duplicate or non-ASCII User-Agents, control characters, and non-finite or boolean weights. A [JSON Schema](user_agent_profiles.schema.json) (draft 2020-12) describes the format.
 - **Linted.** [`tools/profile_lint.py`](tools/profile_lint.py) checks every string against how its browser really formats a User-Agent: reduced Chromium versions and frozen platform tokens, Firefox `rv:` agreement, iOS/Safari version alignment, and no crawler or headless tokens.
 
@@ -255,8 +255,8 @@ UA Rotator changes **one HTTP header**. It does not coordinate Client Hints, TLS
 - **Releases:** built from a clean `git archive` with a pinned backend and `SOURCE_DATE_EPOCH`. Each release ships `SHA256SUMS` and a validation report, and a workflow re-verifies the assets and rebuilds them from the tag.
 
 ```bash
-gh release download v1.3.0 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
-git checkout v1.3.0
+gh release download v1.4.0 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
+git checkout v1.4.0
 python3 tools/build_release.py --out rebuild --compare published/SHA256SUMS   # byte-identical or it fails
 ```
 

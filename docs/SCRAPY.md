@@ -31,7 +31,7 @@ With no source setting, the default bundled profile is used. `ROBOTSTXT_USER_AGE
 | `UA_ROTATOR_REFRESH_ON` | `[]` | `"retry"`, `"redirect"`, both, or a comma-separated string. |
 | `UA_ROTATOR_OVERWRITE_EXISTING` | `False` | Replace User-Agent headers that requests already carry. |
 | `UA_ROTATOR_MAX_KEY_CACHE` | `4096` | LRU bound for sticky scope keys. |
-| `UA_ROTATOR_BUNDLED_PROFILE` | default profile | Named packaged profile, e.g. `"global_2026-07-31-r2.json"`. |
+| `UA_ROTATOR_BUNDLED_PROFILE` | default profile | Named packaged profile, e.g. `"global_2026-11-14.json"`. |
 | `UA_ROTATOR_FILE` | — | Path to an external profile document. |
 | `UA_ROTATOR_ENTRIES` | — | In-memory entries, e.g. `[("ExampleClient/1.0", 1)]`. |
 

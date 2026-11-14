@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "purpose": "Conservative global human-browser User-Agent profile snapshot for weighted rotation and test automation.",
+    "as_of": "2026-11-14",
+    "market_share_model": true,
+    "methodology": "Measured marginals: StatCounter Global Stats, worldwide, October 2026, as printed in each page's summary table (retrieved 2026-11-14): platform (mobile 59.9, desktop 38.51, tablet 1.59), browser family per platform, browser version per platform (Chrome for Android vs Chrome for iPhone/iPad), desktop, mobile and tablet OS, Windows version and iOS version. Joint shapes not published at that fidelity (OS within each desktop browser family, Firefox mobile Android vs iOS, and the split among a family's newest, current and previous releases) are carried over from global_2026-07-31-r2.json; the desktop browser-by-OS table is then fitted to both October marginals by iterative proportional fitting (structural zeros such as Safari outside macOS stay zero). Windows 7 takes its measured share of Windows (0.43%), all on Chrome 109, its final release for Windows 7. Version strings come from release sources retrieved 2026-11-14: Chromium Dashboard stable releases (Chrome 158 rolling out on Windows, macOS, Android and iOS; 157 on Linux; Chrome for iOS 158.0.8127.35 and 157.0.8103.37), Microsoft Edge stable release notes (157.0.4341.60, 2026-11-13), Mozilla release notes (Firefox 160.0 for desktop, Android and iOS, 2026-11-10), Opera desktop blog (Opera 140 on Chromium 157, 2026-11-10; Opera 139 on Chromium 155, 2026-10-27) and Apple security releases (Safari 27.2, 2026-10-26; iOS 27.2.1, 2026-11-09). Safari on iOS 26 and 27 reports the frozen OS token 18_7 with the real Version, as observed in useragents.me traffic data (2026-11-08 to 2026-11-15); its observed frequencies split StatCounter's iOS 26.6 and iOS 27 buckets between the patch releases seen in traffic. Firefox for iOS 159.0 and 160.1 hard-code that token with Safari/604.1 (mozilla-mobile/firefox-ios, BrowserKit/Sources/Shared/UserAgent.swift at those release tags). Firefox for Android reports the device's Android version; its entries use Android 16, the most common version (StatCounter Android version market share, October 2026: 16.0 at 37.92%). Chrome for iOS 157.0.8103.37 and 158.0.8127.35 build their own OS token from the device's real iOS version as major_minor_patch (Chromium ios/web/common/user_agent.mm at those tags, kUserAgentBugFixVersion enabled by default), so Chrome for iOS follows Safari's modeled iOS distribution with the real token, its patch level taken from the Safari release on each bucket (Version/26.6.1 gives 26_6_1, Version/26.6 gives 26_6_0). Families and OSes without a verified current string are excluded and the remaining shares renormalized within each platform.",
+    "limitations": "Cross-dimensional browser-by-OS-by-version telemetry is not publicly available at full fidelity; the joint shapes carried over from the July 2026 model and the release-role splits are modeled estimates. Only the rows in StatCounter's summary tables are modeled; smaller buckets, such as iOS 26.4, are renormalized away, and StatCounter's CSV export of the same month can differ from the page tables by a few tenths of a point. Chrome for iOS's patch levels are a modeled estimate: Safari's Version can omit an iOS patch release, and devices on such a release send a different patch number. Excluded for want of a verified current string: Samsung Internet (version 30.0 measured, Chromium base not published), Opera for Android (Chromium base not published), Edge for Android, Chrome on ChromeOS (current version not retrievable), Brave, UC Browser and the Android stock browser. User-Agent strings do not synchronize Client Hints, TLS or HTTP/2 fingerprints, JavaScript-visible properties, viewport, locale, cookies, or proxy geography. Refresh or replace this dated snapshot as browser releases and measured traffic change.",
+    "profile_revision": "2026-11-14.1",
+    "curation_policy": "Publish only internally consistent browser, engine, platform, and device-token combinations with defensible support. Exclude doubtful exact strings instead of padding the matrix.",
+    "profile_count": 85,
+    "weight_total": 100.0
+  },
+  "entries": [
+    {
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Mobile Safari/537.36",
+      "weight": 31.448954
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "weight": 16.767213
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Mobile Safari/537.36",
+      "weight": 6.289791
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+      "weight": 6.140638
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "weight": 4.829648
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Mobile Safari/537.36",
+      "weight": 4.193194
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "weight": 3.353443
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36",
+      "weight": 2.235628
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1",
+      "weight": 2.03754
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Safari/605.1.15",
+      "weight": 2.032738
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "weight": 1.97399
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Mobile/15E148 Safari/604.1",
+      "weight": 1.870753
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.7 Mobile/15E148 Safari/604.1",
+      "weight": 1.684045
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "weight": 1.361384
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "weight": 1.334362
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:159.0) Gecko/20100101 Firefox/159.0",
+      "weight": 1.093758
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.889566
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1",
+      "weight": 0.77906
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 OPR/140.0.0.0",
+      "weight": 0.69984
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15",
+      "weight": 0.625458
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.593044
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+      "weight": 0.52091
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Safari/605.1.15",
+      "weight": 0.469093
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:160.0) Gecko/20100101 Firefox/160.0",
+      "weight": 0.420676
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "weight": 0.394798
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1",
+      "weight": 0.309669
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 27_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.295169
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "weight": 0.272277
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.271007
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36",
+      "weight": 0.263199
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+      "weight": 0.262481
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64; rv:159.0) Gecko/20100101 Firefox/159.0",
+      "weight": 0.249394
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.24396
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6.1 Mobile/15E148 Safari/604.1",
+      "weight": 0.237083
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Android 16; Mobile; rv:159.0) Gecko/159.0 Firefox/159.0",
+      "weight": 0.213514
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 27_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.196779
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.193303
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.180671
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 OPR/139.0.0.0",
+      "weight": 0.17496
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "weight": 0.168271
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.16264
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:159.0) Gecko/20100101 Firefox/159.0",
+      "weight": 0.141811
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+      "weight": 0.129778
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.128869
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Android 16; Mobile; rv:160.0) Gecko/160.0 Firefox/160.0",
+      "weight": 0.114969
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 27_2_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.112859
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+      "weight": 0.104182
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "weight": 0.096221
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0",
+      "weight": 0.095921
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.090809
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "weight": 0.089587
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 OPR/140.0.0.0",
+      "weight": 0.081352
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1",
+      "weight": 0.078667
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 27_2_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.075239
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Mobile/15E148 Safari/604.1",
+      "weight": 0.072228
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36",
+      "weight": 0.069455
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36 OPR/140.0.0.0",
+      "weight": 0.065533
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.7 Mobile/15E148 Safari/604.1",
+      "weight": 0.065019
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.060539
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:160.0) Gecko/20100101 Firefox/160.0",
+      "weight": 0.054543
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "weight": 0.051518
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.04486
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/160.0 Mobile/15E148 Safari/604.1",
+      "weight": 0.039383
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "weight": 0.038368
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 27_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.030131
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1",
+      "weight": 0.030079
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.029907
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 26_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.027665
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/159.0 Mobile/15E148 Safari/604.1",
+      "weight": 0.026255
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_7_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.024904
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "weight": 0.021817
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 OPR/139.0.0.0",
+      "weight": 0.020338
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 27_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.020088
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.019733
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 26_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.018443
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_7_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.016603
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 OPR/139.0.0.0",
+      "weight": 0.016383
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.013155
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1",
+      "weight": 0.011956
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 27_2_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.011521
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 27_2_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.007681
+    },
+    {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+      "weight": 0.005229
+    },
+    {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+      "weight": 0.004869
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/157.0.8103.37 Mobile/15E148 Safari/604.1",
+      "weight": 0.004579
+    },
+    {
+      "user_agent": "Mozilla/5.0 (iPad; CPU OS 18_6_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/158.0.8127.35 Mobile/15E148 Safari/604.1",
+      "weight": 0.003053
+    }
+  ]
+}

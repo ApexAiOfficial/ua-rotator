@@ -91,7 +91,8 @@ apex-ua-rotator profiles
 
 | File | Revision | Notes |
 |---|---|---|
-| `global_2026-07-31-r2.json` | `2026-07-31.2` | Default since 1.3.0. Corrects the ChromeOS platform token. |
+| `global_2026-11-14.json` | `2026-11-14.1` | Default since 1.4.0. StatCounter October 2026 market model with November 2026 releases and the frozen iOS `18_7` token. |
+| `global_2026-07-31-r2.json` | `2026-07-31.2` | Default in 1.3.0. Corrects the ChromeOS platform token. |
 | `global_2026-07-31.json` | `2026-07-31.1` | Default through 1.2.1. Kept unchanged for reproducibility. |
 
 Bundled snapshots are never edited in place. A correction ships as a numbered revision whose metadata names the file it `supersedes`, and a new market model ships as a new dated file. Pin a snapshot with `UserAgentRotator.from_bundled_profile("global_2026-07-31.json")` or `UA_ROTATOR_BUNDLED_PROFILE`.
