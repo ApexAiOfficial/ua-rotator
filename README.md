@@ -1,418 +1,284 @@
-# Apex User-Agent Rotator
+<div align="center">
 
-Apex User-Agent Rotator is a small, framework-agnostic Python library for weighted User-Agent selection. It includes strict profile validation, sticky identity policies, metadata-preserving JSON persistence, a dated bundled browser profile, and an optional Scrapy downloader middleware.
+<a href="https://github.com/ApexAiOfficial/ua-rotator">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/banner-light.svg">
+    <img alt="ApexAi UA Rotator: weighted, sticky, validated User-Agent identities for Python and Scrapy" src="docs/assets/banner-dark.svg" width="100%">
+  </picture>
+</a>
 
-The core package uses only the Python standard library. Scrapy support is optional.
+<br>
 
-- **Version:** 1.2.1
-- **Python:** 3.10+
-- **License:** Proprietary (`LicenseRef-Proprietary`); see [Licensing](#license)
-- **Default profile:** `global_2026-07-31.json`
-- **Repository:** <https://github.com/ApexAiOfficial/ua-rotator>
+[![CI](https://github.com/ApexAiOfficial/ua-rotator/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ApexAiOfficial/ua-rotator/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ApexAiOfficial/ua-rotator?sort=semver&color=72aaff&label=release)](https://github.com/ApexAiOfficial/ua-rotator/releases/latest)
+[![Python](https://img.shields.io/badge/python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white)](#installation)
+[![Scrapy](https://img.shields.io/badge/Scrapy-2.11%E2%80%932.x-60A839)](#scrapy-integration)
+[![Core dependencies](https://img.shields.io/badge/core%20dependencies-0-62c795)](#why-ua-rotator)
+[![Typed](https://img.shields.io/badge/typed-mypy%20strict-2f6fd6)](pyproject.toml)
+[![Reproducible builds](https://img.shields.io/badge/builds-reproducible-72aaff)](docs/VALIDATION.md#verifying-a-published-release)
+[![License](https://img.shields.io/badge/license-source--available-e5a352)](#license)
 
-> **Source-available, not open source.** This repository is public so the code and documentation can be reviewed. Using, copying, modifying, or redistributing the software requires a separate written agreement with ApexAI. See [`LICENSE.txt`](LICENSE.txt).
+**[Install](#installation)** · **[Quick start](#quick-start)** · **[Scrapy](#scrapy-integration)** · **[Docs](#documentation)** · **[Releases](https://github.com/ApexAiOfficial/ua-rotator/releases)**
 
-## What it does
+</div>
 
-The rotator can:
+---
 
-- select from weighted User-Agent profiles;
-- keep one identity per request, process session, or caller-defined key;
-- preserve profile metadata when loading and saving JSON documents;
-- reject malformed, duplicated, unsafe, or ambiguous profile input;
-- bound sticky-key memory with LRU eviction;
-- integrate with Scrapy while preserving identity across redirects and retries;
-- load a packaged, dated browser profile without requiring a separate data file;
-- validate and sample profiles from a command line.
-
-## What it does not do
-
-This package changes one HTTP header. It does not automatically coordinate:
-
-- Client Hints;
-- TLS, HTTP/2, or HTTP/3 fingerprints;
-- JavaScript-visible browser properties;
-- viewport, fonts, locale, or timezone;
-- cookies, authentication sessions, or proxy geography;
-- request pacing or site-specific crawl policy.
-
-It is not an anti-bot bypass system. Use it only for authorized automation and follow the rules that apply to the systems you access.
-
-## Can it change a normal web browser?
-
-Not by itself. Apex User-Agent Rotator is a Python library, not a Chrome or Firefox extension and not a system-wide proxy.
-
-You can use it directly in:
-
-- Python scripts;
-- Scrapy projects;
-- agents or plug-ins that issue HTTP requests;
-- local services that need a weighted User-Agent source.
-
-For interactive browsing in a normal browser, a browser-specific override, extension, automation framework, or local proxy must apply the selected value. Even then, changing only the User-Agent header may leave other browser signals inconsistent. See [`docs/BROWSER_USAGE.md`](docs/BROWSER_USAGE.md).
-
-## Package layout
-
-```text
-src/apex_ua_rotator/
-├── core.py                         # framework-independent selection engine
-├── scrapy.py                       # optional Scrapy middleware
-├── cli.py                          # command-line interface
-├── smoke.py                        # localhost Scrapy integration test
-├── user_agent_profiles.schema.json
-└── profiles/
-    ├── global_2026-07-31.json
-    └── global_2026-07-31.md
-```
-
-The rest of the repository:
-
-```text
-docs/                               # profile format, Scrapy, browser, validation guides
-examples/                           # script, Scrapy settings, and custom profile examples
-launchers/                          # phone and computer locators for the one-file installer
-tests/                              # pytest suite
-tools/                              # profile validator and one-file installer builder
-user_agent_profiles.schema.json     # copy of the packaged JSON Schema
-```
-
-Compatibility modules remain available for earlier integrations:
+**UA Rotator** picks a realistic browser User-Agent for every request, from a dated and validated profile weighted by real-world browser share. It can keep that identity consistent per request, per crawl, or per domain, account, cookie jar, or proxy. The core is a single dependency-free Python module. An optional Scrapy middleware carries the identity across retries and redirects and replaces it only when you ask.
 
 ```python
-import user_agent_rotator
-import scrapy_user_agent_adapter
+from apex_ua_rotator import UserAgentRotator
+
+rotator = UserAgentRotator.from_bundled_profile(policy="per_key")
+rotator.select(key="example.com")   # same value for example.com on every call, e.g.
+# 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36'
 ```
 
-New integrations should use the canonical `apex_ua_rotator` package.
+## Why UA Rotator
+
+| | |
+|---|---|
+| ⚖️ **Weighted by real usage** | The bundled profile models global desktop, mobile, and tablet browser share: 63 internally consistent strings across Chrome, Safari, Edge, Firefox, Samsung Internet, and Opera, with weights totaling exactly 100. |
+| 🧷 **Sticky identities** | One identity per request, per process, or per any key you choose: domain, account, cookie jar, proxy. A bounded LRU cache keeps memory flat on large crawls. |
+| 🔁 **Refresh that actually changes** | `refresh()` replaces a blocked identity with a *different* one, and concurrent failures in one scope converge on a single replacement instead of churning. |
+| 🕷️ **Scrapy-native** | The downloader middleware follows Scrapy's request lineage through retries and redirects. It has five scopes, explicit refresh rules, and full stats, and it is tested against Scrapy 2.11 and the latest 2.x. |
+| 🛡️ **Strict by default** | Malformed, duplicated, ambiguous, or header-unsafe input is rejected at load time, never at request time. Saves never expose a partially written file and never overwrite one unless asked. |
+| 🎯 **Accurate profiles** | Chromium entries use the reduced User-Agent format and Chrome's frozen platform tokens. A token-level lint in CI catches inconsistent strings before they ship. |
+| 📦 **Zero dependencies, fully typed** | The core uses only the standard library and passes `mypy --strict`. Scrapy stays optional. |
+| 🔏 **Verifiable releases** | Every release artifact is byte-for-byte reproducible from its tag, published with `SHA256SUMS`, and re-verified on GitHub's infrastructure. |
 
 ## Installation
 
-The package is not published to PyPI, and prebuilt release artifacts (the wheel and the one-file installer) are not attached to this repository. Install from a source checkout, or build the artifacts yourself as shown below.
+UA Rotator is distributed through [GitHub Releases](https://github.com/ApexAiOfficial/ua-rotator/releases); it is not published on PyPI. Python 3.10 or newer is required.
 
-### Install from source
+| Option | Best for |
+|---|---|
+| **Wheel** from the latest release | Most projects; works with any pip-based tooling |
+| **One-file installer** (`.pyz`) | Phones (Pydroid 3, Termux) and machines without Git: one file installs, verifies, and smoke-tests |
+| **Offline bundle** (`.zip`) | Air-gapped installs: wheel, sdist, installer, launchers, profiles, docs, and checksums in one archive |
+| **From source** | Development and auditing |
+
+**Wheel (pip):**
+
+```bash
+python -m pip install "https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.3.0/apex_ua_rotator-1.3.0-py3-none-any.whl"
+
+# with the optional Scrapy dependency
+python -m pip install "apex-ua-rotator[scrapy] @ https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.3.0/apex_ua_rotator-1.3.0-py3-none-any.whl"
+```
+
+**One-file installer:** download `apex-ua-rotator-1.3.0-one-shot.pyz` from the release, then run:
+
+```bash
+python3 apex-ua-rotator-1.3.0-one-shot.pyz                  # install, verify, smoke-test Scrapy if present
+python3 apex-ua-rotator-1.3.0-one-shot.pyz --install-only
+python3 apex-ua-rotator-1.3.0-one-shot.pyz --verify-payload # check the embedded wheel only
+```
+
+The installer checks the embedded wheel's SHA-256 before installing and verifies the result in a fresh interpreter. If you don't know where the file was saved, the [phone and computer locators](launchers/README.md) find the newest valid copy, print its checksum, and run exactly the bytes they checked (`--expect-sha256` pins a release).
+
+**From source:**
 
 ```bash
 git clone https://github.com/ApexAiOfficial/ua-rotator.git
 cd ua-rotator
-python3 -m pip install .
+python -m pip install ".[scrapy]"     # or "." for the core only
 ```
 
-### Install with Scrapy
+**Verify a download** against the release's checksums:
 
 ```bash
-python3 -m pip install ".[scrapy]"
-```
-
-### Build and install a wheel
-
-```bash
-python3 -m pip wheel --no-deps . -w dist
-python3 -m pip install dist/apex_ua_rotator-1.2.1-py3-none-any.whl
-```
-
-### One-command installer
-
-`apex-ua-rotator-1.2.1-one-shot.pyz` is a single file that embeds the wheel, installs it into the active Python interpreter, validates the bundled profile, and runs the localhost Scrapy smoke test when Scrapy is already installed. Build it from the wheel above:
-
-```bash
-python3 tools/build_one_shot.py dist/apex_ua_rotator-1.2.1-py3-none-any.whl \
-  -o dist/apex-ua-rotator-1.2.1-one-shot.pyz
-```
-
-Then run it with any Python 3.10+ interpreter:
-
-```bash
-python3 apex-ua-rotator-1.2.1-one-shot.pyz
-```
-
-Useful options:
-
-```bash
-python3 apex-ua-rotator-1.2.1-one-shot.pyz --install-only
-python3 apex-ua-rotator-1.2.1-one-shot.pyz --smoke-only
-python3 apex-ua-rotator-1.2.1-one-shot.pyz --require-scrapy
-python3 apex-ua-rotator-1.2.1-one-shot.pyz --report result.json
-```
-
-The one-shot tool does not download or install Scrapy. If Scrapy is absent, the core validation passes and the optional integration test is reported as skipped unless `--require-scrapy` is used.
-
-### Locator launchers
-
-Two small locator scripts in [`launchers/`](launchers/) find and run the one-file installer in environments where it may be buried among many files. Copy the launcher to the target device (or run it from a checkout); it forwards any additional command-line arguments to the installer.
-
-**Phone / Android**
-
-```bash
-python3 apex-ua-rotator-phone.py --require-scrapy
-```
-
-The phone locator searches mounted shared/internal storage and removable SD-card roots, including `/storage`, `/mnt/media_rw`, `/sdcard`, Android runtime mounts, and storage paths exposed through common environment variables. The search is bounded to depth 8, does not assume a Download folder, and selects the highest-version matching installer; modification time breaks ties between copies of the same version.
-
-**Computer**
-
-```bash
-python3 apex-ua-rotator-computer.py
-```
-
-The computer locator is cross-platform for Linux, macOS, and Windows. It searches only user-level roots: the current user's home directory plus user-owned cloud/storage paths exposed through common environment variables. The search is bounded to depth 8, never scans an entire system drive, prunes common cache/dependency/virtual-environment/trash directories, and selects the highest-version matching installer.
-
-An explicit installer path remains the most deterministic option:
-
-```bash
-python3 /absolute/path/to/apex-ua-rotator-1.2.1-one-shot.pyz
+sha256sum --check --ignore-missing SHA256SUMS
 ```
 
 ## Quick start
 
-### Use the bundled profile
-
 ```python
 from apex_ua_rotator import UserAgentRotator
 
+# The bundled, dated global profile; no data file needed.
 rotator = UserAgentRotator.from_bundled_profile()
+rotator.select()                     # weighted pick on every call
+rotator.metadata["as_of"]            # '2026-07-31'
 
-print(len(rotator))
-print(rotator.metadata["as_of"])
-print(rotator.select())
+# Your own weighted list: weights are relative, not percentages.
+custom = UserAgentRotator([("ExampleClient/1.0 desktop", 3), ("ExampleClient/1.0 mobile", 1)])
+
+# Reproducible selection for tests.
+import random
+seeded = UserAgentRotator.from_bundled_profile(rng=random.Random(42))
 ```
 
-### Use a custom in-memory list
+### Rotation policies
+
+| Policy | Behavior | Typical use |
+|---|---|---|
+| `per_request` | A new weighted pick on every call | Independent, stateless requests |
+| `per_session` | One identity for the rotator's lifetime | A single coherent client session |
+| `per_key` | One identity per hashable key, LRU-bounded (`max_key_cache`, default 4096) | Domains, accounts, tenants, cookie jars, proxies |
 
 ```python
-from apex_ua_rotator import UserAgentRotator
+sticky = UserAgentRotator.from_bundled_profile(policy="per_key")
 
-rotator = UserAgentRotator(
-    [
-        ("ExampleClient/1.0 desktop", 3),
-        ("ExampleClient/1.0 mobile", 1),
-    ]
-)
+ua = sticky.select(key="shop.example")
+assert sticky.select(key="shop.example") == ua   # same identity for that site
 
-print(rotator.select())
+# The site blocked us: switch to a different identity for that key.
+new_ua = sticky.refresh(key="shop.example", previous=ua)
+assert new_ua != ua
 ```
 
-A single profile must be wrapped in a list:
-
-```python
-rotator = UserAgentRotator(["ExampleClient/1.0"])
-```
-
-Bare strings, bytes, mappings, and single `UserAgentEntry` objects are rejected at the top-level constructor boundary because treating them as iterables can silently create one entry per character or key.
-
-## Selection policies
-
-### `per_request`
-
-Select on each call.
-
-```python
-rotator = UserAgentRotator.from_bundled_profile(policy="per_request")
-print(rotator.select())
-```
-
-### `per_session`
-
-Keep one value for the rotator instance until reset or explicitly refreshed.
-
-```python
-rotator = UserAgentRotator.from_bundled_profile(policy="per_session")
-first = rotator.select()
-assert first == rotator.select()
-replacement = rotator.select(force_new=True)
-```
-
-### `per_key`
-
-Keep one value per caller-supplied hashable key. The cache is bounded and uses LRU eviction.
-
-```python
-rotator = UserAgentRotator.from_bundled_profile(
-    policy="per_key",
-    max_key_cache=4096,
-)
-
-first = rotator.select(key="example.com")
-assert first == rotator.select(key="example.com")
-replacement = rotator.select(key="example.com", force_new=True)
-```
-
-Keys may represent domains, accounts, cookie jars, proxies, tenants, or any other identity scope meaningful to the caller.
-
-## Command-line interface
-
-After installation:
-
-```bash
-apex-ua-rotator info
-apex-ua-rotator sample -n 5
-apex-ua-rotator sample -n 3 --policy per_session
-apex-ua-rotator validate ./profiles.json
-apex-ua-rotator smoke-scrapy
-```
-
-The same interface is available without relying on the generated console script:
-
-```bash
-python3 -m apex_ua_rotator info
-```
-
-## Profile documents
-
-A profile file uses this versioned structure:
-
-```json
-{
-  "schema_version": 1,
-  "metadata": {
-    "purpose": "Dated profile description",
-    "as_of": "2026-07-31"
-  },
-  "entries": [
-    {
-      "user_agent": "ExampleClient/1.0",
-      "weight": 1.0
-    }
-  ]
-}
-```
-
-Weights are raw relative values and do not need to total 100. A total of 100 can be useful for human-readable market models, but `1, 3, 6` and `10, 30, 60` describe the same distribution.
-
-The loader rejects:
-
-- unsupported top-level or entry fields;
-- unsupported schema versions;
-- duplicate User-Agent strings;
-- empty, non-ASCII, whitespace-padded, or control-character-bearing values;
-- Boolean, negative, infinite, or NaN weights;
-- documents with no positive weight;
-- metadata that cannot be represented as finite JSON.
-
-Metadata is preserved by `from_file()`, `to_document()`, and `save()`.
-
-See [`docs/PROFILE_FORMAT.md`](docs/PROFILE_FORMAT.md) and the bundled JSON Schema.
-
-## Persistence
-
-```python
-rotator.save("profiles.json")
-rotator.save("profiles.json", overwrite=True)
-```
-
-By default, saving refuses to replace an existing file. Publication uses a temporary file in the destination directory, flushes and synchronizes its contents, then publishes it atomically where supported. Temporary files are removed on failure.
+`refresh()` excludes `previous` from the draw whenever another positively weighted entry exists. If another caller already replaced the identity, `refresh()` returns that replacement instead of drawing again. A complete standard-library HTTP client with this pattern is in [`examples/http_client.py`](examples/http_client.py).
 
 ## Scrapy integration
 
-Install the optional dependency, then add the middleware:
-
 ```python
+# settings.py
 DOWNLOADER_MIDDLEWARES = {
     "apex_ua_rotator.scrapy.ScrapyUserAgentMiddleware": 90,
     "scrapy.downloadermiddlewares.useragent.UserAgentMiddleware": None,
 }
 
-UA_ROTATOR_SCOPE = "domain"
-UA_ROTATOR_REFRESH_ON = []
-UA_ROTATOR_OVERWRITE_EXISTING = False
-UA_ROTATOR_MAX_KEY_CACHE = 4096
-
-ROBOTSTXT_USER_AGENT = "YourCrawlerName/1.0"
+UA_ROTATOR_SCOPE = "domain"          # request | spider | domain | cookiejar | proxy
+UA_ROTATOR_REFRESH_ON = ["retry"]    # new identity when Scrapy retries (429, 503, timeouts, ...)
+ROBOTSTXT_USER_AGENT = "YourCrawler/1.0"
 ```
 
-With no profile source setting, the middleware uses the default bundled profile.
+The middleware records each request's identity in `Request.meta`. Scrapy copies that metadata into retries and redirects, so the identity follows the whole **request lineage**. It changes only when the scope changes or a refresh rule fires.
 
-Optional profile sources:
-
-```python
-# Named packaged profile
-UA_ROTATOR_BUNDLED_PROFILE = "global_2026-07-31.json"
-
-# External profile document
-UA_ROTATOR_FILE = "/absolute/path/to/profiles.json"
-
-# In-memory entries
-UA_ROTATOR_ENTRIES = [("ExampleClient/1.0", 1)]
+```mermaid
+flowchart LR
+    A[Request] --> B{Explicit User-Agent<br/>header?}
+    B -- yes --> K[Keep it]
+    B -- no --> C{Lineage record<br/>in meta?}
+    C -- no --> S[Select for scope key]
+    C -- yes --> D{Retry/redirect counter<br/>advanced and refresh on?}
+    D -- yes --> R["refresh(): a different identity,<br/>shared across the scope"]
+    D -- no --> E{Scope key<br/>changed?}
+    E -- yes --> S
+    E -- no --> U[Reuse lineage identity]
+    S --> H[Set header + record lineage]
+    R --> H
+    U --> H
 ```
 
-Configure at most one source.
+| Scope | One identity per | Notes |
+|---|---|---|
+| `request` | request lineage | Retries and redirects keep the identity |
+| `spider` | crawl | One identity for the middleware instance |
+| `domain` | hostname | Cross-domain redirects adopt the destination's identity |
+| `cookiejar` | Scrapy cookie jar | Same default jar as `CookiesMiddleware` |
+| `proxy` | proxy endpoint | Credential-free keys; run at priority 760, after `HttpProxyMiddleware` |
 
-Available scopes:
+Built for production crawls:
 
-- `request`: one identity per request lineage;
-- `spider`: one identity for the middleware instance;
-- `domain`: one identity per parsed hostname;
-- `cookiejar`: one identity per Scrapy `cookiejar` value;
-- `proxy`: one identity per proxy value, with direct traffic grouped separately.
+- **Fails fast.** Conflicting or invalid settings stop the crawl at startup instead of silently disabling rotation. `UA_ROTATOR_ENABLED = False` disables the middleware cleanly.
+- **Coexists with Scrapy's defaults.** A request's own User-Agent is respected. Scrapy's `USER_AGENT` default is replaced even if the built-in middleware runs first.
+- **Observable.** It logs its configuration at startup and keeps the stats `ua_rotator/selected`, `reused`, `refreshed`, `scope_changed`, `skipped_existing_header`, and `replaced_default_header`.
+- **Verified locally.** `apex-ua-rotator smoke-scrapy` runs real crawls against a temporary `127.0.0.1` server and checks redirect continuity, retry continuity, and refresh-on-retry.
 
-Retries and redirects preserve the selected identity by default. Optional refresh events are explicit:
+A runnable spider is in [`examples/quotes_spider.py`](examples/quotes_spider.py) (`scrapy runspider examples/quotes_spider.py -O quotes.json`). The full reference is [`docs/SCRAPY.md`](docs/SCRAPY.md).
 
-```python
-UA_ROTATOR_REFRESH_ON = ["retry"]
-UA_ROTATOR_REFRESH_ON = ["redirect"]
-UA_ROTATOR_REFRESH_ON = ["retry", "redirect"]
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Sources["Profile sources"]
+        P1["Bundled dated snapshots<br/>(packaged JSON)"]
+        P2["Your JSON document<br/>(schema v1)"]
+        P3["In-memory entries"]
+    end
+    V["Strict validation<br/>schema · ASCII · no duplicates · finite weights"]
+    subgraph Core["apex_ua_rotator.core — standard library only"]
+        R["UserAgentRotator<br/>thread-safe · weighted (cumulative) selection"]
+        Pol["Policies<br/>per_request · per_session · per_key (LRU)"]
+        IO["Atomic, no-clobber save()<br/>metadata preserved"]
+    end
+    subgraph Adapters
+        S["Scrapy middleware<br/>lineage · scopes · refresh · stats"]
+        C["CLI<br/>info · sample · profiles · validate · smoke-scrapy"]
+        Y["Your code<br/>HTTP clients · Playwright · agents"]
+    end
+    P1 --> V
+    P2 --> V
+    P3 --> V
+    V --> R
+    R --- Pol
+    R --- IO
+    R --> S
+    R --> C
+    R --> Y
 ```
 
-The adapter respects a pre-existing User-Agent header unless `UA_ROTATOR_OVERWRITE_EXISTING` is true.
+The core holds no framework imports and no hard-coded browser list. Profile data is replaceable and dated, and adapters are thin layers over one stable `select()` / `refresh()` interface.
 
-See [`docs/SCRAPY.md`](docs/SCRAPY.md) for complete behavior and examples.
-
-## Local validation
-
-### Core test suite
-
-Install the test dependencies first:
+## Command line
 
 ```bash
-python3 -m pip install ".[test]"
+apex-ua-rotator info                          # profile summary, metadata, age in days
+apex-ua-rotator profiles                      # list bundled snapshots and the default
+apex-ua-rotator sample -n 5                   # weighted samples
+apex-ua-rotator sample -n 5 --seed 42 --json  # reproducible, machine-readable
+apex-ua-rotator validate ./profiles.json      # strict validation and summary
+apex-ua-rotator smoke-scrapy                  # localhost Scrapy integration test
 ```
 
-Then run:
+`python -m apex_ua_rotator …` works the same way. Errors exit with status 2 and a one-line message.
+
+## Profiles
+
+A profile is a small, versioned JSON document:
+
+```json
+{
+  "schema_version": 1,
+  "metadata": { "as_of": "2026-07-31", "purpose": "..." },
+  "entries": [ { "user_agent": "Mozilla/5.0 ...", "weight": 24.9418 } ]
+}
+```
+
+- **Dated and replaceable.** The default `global_2026-07-31-r2.json` is a market model as of 31 July 2026; `apex-ua-rotator info` reports its age. Snapshots are never edited in place: corrections ship as numbered revisions (revision 1 stays bundled for reproducibility), and new market data ships as new dated files.
+- **Strict.** The loader rejects unknown fields, duplicate JSON keys, duplicate or non-ASCII User-Agents, control characters, and non-finite or boolean weights. A [JSON Schema](user_agent_profiles.schema.json) (draft 2020-12) describes the format.
+- **Linted.** [`tools/profile_lint.py`](tools/profile_lint.py) checks every string against how its browser really formats a User-Agent: reduced Chromium versions and frozen platform tokens, Firefox `rv:` agreement, iOS/Safari version alignment, and no crawler or headless tokens.
+
+Details: [`docs/PROFILE_FORMAT.md`](docs/PROFILE_FORMAT.md).
+
+## Scope and responsible use
+
+UA Rotator changes **one HTTP header**. It does not coordinate Client Hints, TLS or HTTP/2 fingerprints, JavaScript-visible browser properties, viewport, locale, cookies, or proxy geography. It is not an anti-bot bypass tool. Use it for authorized automation, testing, and research, and follow the terms, `robots.txt` rules, and rate limits that apply to the systems you access. Browser automation guidance is in [`docs/BROWSER_USAGE.md`](docs/BROWSER_USAGE.md).
+
+## Quality and verification
+
+- **Tests:** 140+ tests, including a suite that drives the middleware through Scrapy's real `RetryMiddleware`, `RedirectMiddleware`, and `HttpProxyMiddleware`. CI enforces a 90% branch-coverage minimum.
+- **CI matrix:** Python 3.10–3.14 on Linux, plus Windows and macOS; Scrapy 2.11 and the latest 2.x; `ruff`; strict `mypy`; reproducible-build check. Actions are pinned to commit SHAs.
+- **Releases:** built from a clean `git archive` with a pinned backend and `SOURCE_DATE_EPOCH`. Each release ships `SHA256SUMS` and a validation report, and a workflow re-verifies the assets and rebuilds them from the tag.
 
 ```bash
-python3 -m compileall -q src tests tools examples launchers
-python3 -m pytest -q
-python3 tools/validate_profiles.py
+gh release download v1.3.0 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
+git checkout v1.3.0
+python3 tools/build_release.py --out rebuild --compare published/SHA256SUMS   # byte-identical or it fails
 ```
-
-### Coverage
-
-```bash
-coverage run -m pytest -q
-coverage report -m
-```
-
-### Real Scrapy middleware smoke test
-
-```bash
-python3 -m pip install ".[scrapy]"
-python3 -m apex_ua_rotator smoke-scrapy
-```
-
-The smoke test contacts only a temporary HTTP server on `127.0.0.1`. It verifies actual Scrapy middleware loading, User-Agent assignment, redirect continuity, retry continuity, request metadata, and middleware statistics.
-
-## Integration guidance
-
-- Use `per_request` when every independent request may use a new identity.
-- Use `per_key` for domains, accounts, cookie jars, or proxies that should remain coherent.
-- Do not rotate within an authenticated session unless the application explicitly requires it.
-- Keep profiles external and dated so they can be reviewed and replaced independently of code.
-- Log the selected scope and User-Agent during integration testing, but avoid logging credentials, cookies, or sensitive request data.
-- Validate profile updates before deployment.
 
 ## Documentation
 
-- [`docs/PROFILE_FORMAT.md`](docs/PROFILE_FORMAT.md)
-- [`docs/SCRAPY.md`](docs/SCRAPY.md)
-- [`docs/BROWSER_USAGE.md`](docs/BROWSER_USAGE.md)
-- [`docs/VALIDATION.md`](docs/VALIDATION.md)
-- [`launchers/README.md`](launchers/README.md)
-- [`examples/`](examples/)
-- [`CHANGELOG.md`](CHANGELOG.md)
+| Guide | Contents |
+|---|---|
+| [Scrapy adapter](docs/SCRAPY.md) | Settings, scopes, refresh semantics, middleware ordering, statistics |
+| [Profile format](docs/PROFILE_FORMAT.md) | Document schema, strict parsing, weights, bundled snapshots |
+| [Browser usage](docs/BROWSER_USAGE.md) | Playwright and Selenium integration, consistency caveats |
+| [Validation and releases](docs/VALIDATION.md) | Local checks, CI, reproducible release builds, verifying downloads |
+| [Locator launchers](launchers/README.md) | Finding and running the one-file installer on phones and computers |
+| [Changelog](CHANGELOG.md) | Release history |
+| [Security policy](SECURITY.md) | Reporting vulnerabilities privately |
+
+Earlier integrations keep working through the compatibility modules `user_agent_rotator` and `scrapy_user_agent_adapter`; new code should import `apex_ua_rotator`.
 
 ## License
 
-Copyright (c) 2026 ApexAI. All rights reserved.
+UA Rotator is **source-available, not open source**. The code is public so it can be reviewed and audited, but using, copying, modifying, or redistributing it requires a separate written agreement with ApexAi. See [`LICENSE.txt`](LICENSE.txt), and contact us through [apexaiofficial.com/contact](https://apexaiofficial.com/contact) about licensing.
 
-This software is proprietary. The repository is publicly visible for review only; no permission is granted to use, copy, modify, publish, distribute, sublicense, or sell it except under a separate written agreement with ApexAI. See [`LICENSE.txt`](LICENSE.txt).
-
-For licensing inquiries, contact ApexAI through <https://apexaiofficial.com/contact>.
+<div align="center">
+<br>
+<sub>Built by <a href="https://apexaiofficial.com">ApexAi</a> · <a href="https://t.me/ApexAiOfficial">Telegram</a> · <a href="https://github.com/ApexAiOfficial">GitHub</a></sub>
+</div>

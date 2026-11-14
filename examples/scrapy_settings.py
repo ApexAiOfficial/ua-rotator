@@ -7,8 +7,12 @@ DOWNLOADER_MIDDLEWARES = {
 
 # The bundled global profile is used automatically.
 UA_ROTATOR_SCOPE = "domain"
-UA_ROTATOR_REFRESH_ON = []
+UA_ROTATOR_REFRESH_ON = []  # e.g. ["retry"] to change identity when a request is retried
 UA_ROTATOR_OVERWRITE_EXISTING = False
 UA_ROTATOR_MAX_KEY_CACHE = 4096
+
+# For UA_ROTATOR_SCOPE = "proxy", run after HttpProxyMiddleware (750) so the
+# proxy is already assigned when the identity is chosen:
+# DOWNLOADER_MIDDLEWARES["apex_ua_rotator.scrapy.ScrapyUserAgentMiddleware"] = 760
 
 ROBOTSTXT_USER_AGENT = "ExampleCrawler/1.0"

@@ -1,0 +1,41 @@
+name: Verify release
+
+# Proves on clean GitHub infrastructure that published assets match their
+# SHA256SUMS and that rebuilding the tagged source reproduces them exactly.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to verify
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Download published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir published
+      - name: Published assets match SHA256SUMS
+        working-directory: published
+        run: sha256sum --check --strict SHA256SUMS
+      - name: Rebuild from the tag and compare
+        if: hashFiles('tools/build_release.py') != ''
+        run: python tools/build_release.py --out rebuild --compare published/SHA256SUMS

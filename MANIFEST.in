@@ -1,0 +1,9 @@
+# Source distribution contents beyond the package itself: everything needed to
+# run the test suite, rebuild the release artifacts, and read the docs.
+include CHANGELOG.md LICENSE.txt README.md SECURITY.md user_agent_profiles.schema.json
+graft docs
+graft examples
+graft launchers
+graft tests
+graft tools
+global-exclude __pycache__ *.py[cod]

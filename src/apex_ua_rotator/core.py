@@ -10,6 +10,7 @@ Dependencies: standard library only
 
 from __future__ import annotations
 
+import itertools
 import json
 import math
 import os
@@ -26,9 +27,25 @@ from pathlib import Path
 from typing import Any, Hashable, Iterable, Mapping, Protocol, Sequence
 
 SCHEMA_VERSION = 1
-DEFAULT_PROFILE_NAME = "global_2026-07-31.json"
+DEFAULT_PROFILE_NAME = "global_2026-07-31-r2.json"
 _ALLOWED_DOCUMENT_FIELDS = frozenset({"schema_version", "metadata", "entries"})
 _ALLOWED_ENTRY_FIELDS = frozenset({"user_agent", "weight"})
+_IS_WINDOWS = os.name == "nt"
+
+
+def _strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """JSON object hook that rejects duplicate keys instead of keeping the last."""
+
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate object key {key!r}")
+        result[key] = value
+    return result
+
+
+def _reject_constant(name: str) -> Any:
+    raise ValueError(f"non-finite number {name} is not valid JSON")
 
 
 class RotationPolicy(str, Enum):
@@ -75,6 +92,11 @@ class UserAgentRotator:
     ``per_key``
         Cache one selection per caller-supplied hashable key. Adapters may use
         hostnames, cookie jars, accounts, proxies, or another meaningful scope.
+
+    Instances of :class:`random.Random` (the default, seeded instances, and
+    :class:`random.SystemRandom`) use precomputed cumulative weights. Other
+    ``rng`` objects receive the raw ``weights`` sequence, as in earlier
+    releases. Both paths produce the same selections for the same seed.
     """
 
     def __init__(
@@ -94,6 +116,12 @@ class UserAgentRotator:
 
         self._policy = self._coerce_policy(policy)
         self._rng: RandomChoices = rng if rng is not None else random.Random()
+        # The cumulative-weight fast path is only used when the RNG's choices()
+        # is the standard-library implementation, which is known to honour it.
+        self._cumulative_rng = (
+            isinstance(self._rng, random.Random)
+            and type(self._rng).choices is random.Random.choices
+        )
         self._max_key_cache = self._validate_cache_size(max_key_cache)
         self._lock = threading.RLock()
         self._session_ua: str | None = None
@@ -172,14 +200,67 @@ class UserAgentRotator:
             self._ensure_hashable(key)
 
             if force_new or key not in self._key_cache:
-                self._key_cache[key] = self._choose()
-                self._key_cache.move_to_end(key)
-                while len(self._key_cache) > self._max_key_cache:
-                    self._key_cache.popitem(last=False)
-            else:
-                self._key_cache.move_to_end(key)
+                selected = self._choose()
+                self._store_key(key, selected)
+                return selected
 
+            self._key_cache.move_to_end(key)
             return self._key_cache[key]
+
+    def refresh(
+        self,
+        *,
+        key: Hashable | None = None,
+        previous: str | None = None,
+    ) -> str:
+        """Replace an identity, choosing a different User-Agent when possible.
+
+        Use this after an identity failed, for example when a request was
+        blocked and is about to be retried. The replacement is drawn from the
+        profile with ``previous`` (or, without ``previous``, the current sticky
+        value) excluded, as long as another positively weighted entry exists.
+        A plain ``select(force_new=True)`` can return the same value again.
+
+        ``per_request``
+            Return a new selection that avoids ``previous``.
+
+        ``per_session`` and ``per_key``
+            Replace the sticky identity and return it. When ``previous`` is
+            given and the sticky identity no longer equals it, another caller
+            has already replaced it; that identity is returned unchanged, so
+            concurrent failures in one scope converge on a single replacement
+            instead of cycling through several.
+
+        ``key`` is required for ``per_key``, as with :meth:`select`.
+        """
+
+        if previous is not None and not isinstance(previous, str):
+            raise ValueError("previous must be a User-Agent string or None.")
+        with self._lock:
+            if self._policy is RotationPolicy.PER_REQUEST:
+                return self._choose(exclude=previous)
+
+            if self._policy is RotationPolicy.PER_SESSION:
+                current = self._session_ua
+                if previous is not None and current is not None and current != previous:
+                    return current
+                self._session_ua = self._choose(
+                    exclude=previous if previous is not None else current
+                )
+                return self._session_ua
+
+            if key is None:
+                raise ValueError("key is required when policy='per_key'.")
+            self._ensure_hashable(key)
+            current = self._key_cache.get(key)
+            if previous is not None and current is not None and current != previous:
+                self._key_cache.move_to_end(key)
+                return current
+            replacement = self._choose(
+                exclude=previous if previous is not None else current
+            )
+            self._store_key(key, replacement)
+            return replacement
 
     def reset(self) -> None:
         """Clear all sticky selections without changing profile data."""
@@ -273,8 +354,21 @@ class UserAgentRotator:
         """Persist the complete document using same-filesystem publication.
 
         Existing files are protected unless ``overwrite=True``. The temporary
-        file is flushed and ``fsync``-ed before publication. On POSIX, the parent
-        directory is also ``fsync``-ed on a best-effort basis.
+        file is flushed and ``fsync``-ed before publication, so readers never
+        observe a partially written document. On POSIX, the parent directory is
+        also ``fsync``-ed on a best-effort basis.
+
+        Without ``overwrite``, publication uses a hard link, which is atomic and
+        never replaces an existing file. On filesystems without hard links
+        (FAT/exFAT, Android shared storage, some network mounts), Windows uses
+        ``os.rename``, which is also atomic and refuses to replace a file. Other
+        platforms reserve the name with an exclusive create and then atomically
+        replace the empty reservation: an existing file is still never
+        replaced, but a concurrent reader may briefly see an empty file, and a
+        crash between the two steps leaves an empty file that a later save
+        reports as existing. Overwriting keeps the existing file's permission
+        bits. New files are created with owner-only permissions (``0o600`` on
+        POSIX).
         """
 
         destination = Path(file_path)
@@ -309,9 +403,7 @@ class UserAgentRotator:
             if overwrite:
                 os.replace(temp_path, destination)
             else:
-                # Hard-link publication is atomic and no-clobber when supported.
-                os.link(temp_path, destination)
-                temp_path.unlink()
+                self._publish_no_clobber(temp_path, destination)
             self._fsync_directory(parent)
         except Exception:
             try:
@@ -365,12 +457,31 @@ class UserAgentRotator:
             max_key_cache=max_key_cache,
         )
 
-    def _choose(self) -> str:
+    def _choose(self, *, exclude: str | None = None) -> str:
+        if exclude is not None:
+            index = self._index.get(exclude)
+            if index is not None and self._weights[index] > 0 and self._positive_entries > 1:
+                weights = list(self._weights)
+                weights[index] = 0.0
+                return self._rng.choices(self._user_agents, weights=weights, k=1)[0]
+        if self._cumulative_rng:
+            return self._rng.choices(
+                self._user_agents, cum_weights=self._cum_weights, k=1
+            )[0]
         return self._rng.choices(self._user_agents, weights=self._weights, k=1)[0]
+
+    def _store_key(self, key: Hashable, user_agent: str) -> None:
+        self._key_cache[key] = user_agent
+        self._key_cache.move_to_end(key)
+        while len(self._key_cache) > self._max_key_cache:
+            self._key_cache.popitem(last=False)
 
     def _rebuild_vectors(self) -> None:
         self._user_agents = tuple(entry.user_agent for entry in self._entries)
         self._weights = tuple(entry.weight for entry in self._entries)
+        self._cum_weights = tuple(itertools.accumulate(self._weights))
+        self._index = {user_agent: i for i, user_agent in enumerate(self._user_agents)}
+        self._positive_entries = sum(1 for weight in self._weights if weight > 0)
 
     def _clear_caches(self) -> None:
         self._session_ua = None
@@ -420,6 +531,10 @@ class UserAgentRotator:
             raise ValueError("At least one User-Agent entry is required.")
         if not any(entry.weight > 0 for entry in entries):
             raise ValueError("At least one User-Agent weight must be positive.")
+        # Individually finite weights can still overflow when summed; reject
+        # that here instead of failing later inside random.choices().
+        if not math.isfinite(sum(entry.weight for entry in entries)):
+            raise ValueError("The sum of User-Agent weights must be finite.")
         return tuple(entries)
 
     @classmethod
@@ -470,7 +585,7 @@ class UserAgentRotator:
             raise ValueError("Weight cannot be boolean.")
         try:
             weight = float(value)
-        except (TypeError, ValueError) as exc:
+        except (TypeError, ValueError, OverflowError) as exc:
             raise ValueError(f"Invalid weight: {value!r}") from exc
         if not math.isfinite(weight) or weight < 0:
             raise ValueError("Weight must be finite and non-negative.")
@@ -507,9 +622,15 @@ class UserAgentRotator:
 
     @staticmethod
     def _load_json(handle: Any, *, source: str) -> Any:
+        # Strict parsing: duplicate keys are ambiguous (the stdlib silently keeps
+        # the last one) and NaN/Infinity are not JSON.
         try:
-            return json.load(handle)
-        except json.JSONDecodeError as exc:
+            return json.load(
+                handle,
+                object_pairs_hook=_strict_object,
+                parse_constant=_reject_constant,
+            )
+        except ValueError as exc:  # includes json.JSONDecodeError
             raise ValueError(f"Invalid JSON in {source}: {exc}") from exc
 
     @classmethod
@@ -523,9 +644,11 @@ class UserAgentRotator:
             raise ValueError(
                 f"Profile file contains unsupported fields: {sorted(unknown)!r}."
             )
-        if document.get("schema_version") != SCHEMA_VERSION:
+        schema_version = document.get("schema_version")
+        # ``True == 1`` in Python; a boolean is not a schema version.
+        if isinstance(schema_version, bool) or schema_version != SCHEMA_VERSION:
             raise ValueError(
-                f"Unsupported schema_version {document.get('schema_version')!r}; "
+                f"Unsupported schema_version {schema_version!r}; "
                 f"expected {SCHEMA_VERSION}."
             )
 
@@ -560,6 +683,39 @@ class UserAgentRotator:
             cls._validate_entries(parsed),
             cls._validate_metadata(document.get("metadata")),
         )
+
+    @staticmethod
+    def _publish_no_clobber(temp_path: Path, destination: Path) -> None:
+        link = getattr(os, "link", None)
+        try:
+            if link is None:
+                raise OSError("hard links are not available on this platform")
+            link(temp_path, destination)
+        except FileExistsError:
+            raise
+        except OSError:
+            if _IS_WINDOWS:
+                # Windows rename is atomic and fails if the destination exists.
+                os.rename(temp_path, destination)
+                return
+            # No hard-link support here. Reserve the name exclusively (fails if
+            # anything exists there), then atomically replace the empty
+            # reservation with the fully written temporary file.
+            reservation = os.open(
+                destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+            )
+            os.close(reservation)
+            try:
+                os.replace(temp_path, destination)
+            except BaseException:
+                try:
+                    if destination.stat().st_size == 0:
+                        destination.unlink()
+                except OSError:
+                    pass
+                raise
+        else:
+            temp_path.unlink()
 
     @staticmethod
     def _fsync_directory(path: Path) -> None:

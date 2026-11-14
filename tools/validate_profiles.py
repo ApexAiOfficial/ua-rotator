@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Validate all bundled Apex User-Agent profile documents."""
+"""Validate all bundled Apex User-Agent profile documents.
+
+Checks every ``src/apex_ua_rotator/profiles/*.json`` document with the real
+loader, the bundled-snapshot invariants (descending weights totaling 100,
+consistent metadata), the JSON Schema (when ``jsonschema`` is installed), the
+browser-token lint in ``profile_lint.py``, and repository consistency (both
+schema copies identical, one notes file per snapshot).
+
+A profile named by another profile's ``metadata.supersedes`` is retained
+unchanged for reproducibility; its lint findings are reported as known issues
+instead of failures.
+"""
 
 from __future__ import annotations
 
@@ -11,20 +22,37 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+for path in (SRC, ROOT / "tools"):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
-from apex_ua_rotator import UserAgentRotator  # noqa: E402
+from profile_lint import lint_entries  # noqa: E402
+
+from apex_ua_rotator import DEFAULT_PROFILE_NAME, UserAgentRotator  # noqa: E402
 
 PROFILE_DIR = SRC / "apex_ua_rotator" / "profiles"
+PACKAGED_SCHEMA = SRC / "apex_ua_rotator" / "user_agent_profiles.schema.json"
+ROOT_SCHEMA = ROOT / "user_agent_profiles.schema.json"
 
 
-def validate(path: Path) -> dict[str, object]:
+def _schema_errors(document: object) -> list[str] | None:
+    try:
+        import jsonschema
+    except ImportError:
+        return None
+    schema = json.loads(PACKAGED_SCHEMA.read_text(encoding="utf-8"))
+    validator = jsonschema.Draft202012Validator(schema)
+    return [error.message for error in validator.iter_errors(document)]
+
+
+def validate(path: Path, *, superseded: bool = False) -> dict[str, object]:
     document = json.loads(path.read_text(encoding="utf-8"))
     rotator = UserAgentRotator.from_file(path)
     entries = document["entries"]
     weights = [Decimal(str(entry["weight"])) for entry in entries]
     user_agents = [entry["user_agent"] for entry in entries]
+    schema_errors = _schema_errors(document)
+    lint = lint_entries(user_agents)
 
     checks = {
         "actual_loader_accepts": len(rotator) == len(entries),
@@ -37,24 +65,52 @@ def validate(path: Path) -> dict[str, object]:
         "user_agents_unique": len(user_agents) == len(set(user_agents)),
         "metadata_count_matches": document["metadata"].get("profile_count") == len(entries),
         "metadata_total_matches": Decimal(str(document["metadata"].get("weight_total"))) == Decimal("100.0"),
+        "notes_file_present": path.with_suffix(".md").is_file(),
+        "schema_valid": schema_errors == [] if schema_errors is not None else None,
+        "browser_tokens_consistent": not lint or superseded,
     }
-    failures = [name for name, passed in checks.items() if not passed]
+    failures = [name for name, passed in checks.items() if passed is False]
     if failures:
-        raise AssertionError(f"{path.name} failed: {failures}")
-    return {
+        detail = {"failures": failures, "schema_errors": schema_errors, "lint": lint}
+        raise AssertionError(f"{path.name} failed: {json.dumps(detail, indent=2)}")
+    result: dict[str, object] = {
         "profile": path.name,
+        "default": path.name == DEFAULT_PROFILE_NAME,
+        "profile_revision": document["metadata"].get("profile_revision"),
         "entry_count": len(entries),
         "weight_total": str(sum(weights)),
         "checks": checks,
     }
+    if superseded:
+        result["superseded"] = True
+        result["known_issues"] = lint
+    return result
 
 
 def main() -> int:
     profiles = sorted(PROFILE_DIR.glob("*.json"))
     if not profiles:
         raise SystemExit("No bundled JSON profiles found.")
-    results = [validate(path) for path in profiles]
-    print(json.dumps({"result": "PASS", "profiles": results}, indent=2))
+    if PACKAGED_SCHEMA.read_bytes() != ROOT_SCHEMA.read_bytes():
+        raise SystemExit("The packaged and repository-root JSON Schemas differ.")
+    if not (PROFILE_DIR / DEFAULT_PROFILE_NAME).is_file():
+        raise SystemExit(f"Default profile {DEFAULT_PROFILE_NAME} is not bundled.")
+    superseded = {
+        json.loads(path.read_text(encoding="utf-8"))["metadata"].get("supersedes")
+        for path in profiles
+    }
+    results = [validate(path, superseded=path.name in superseded) for path in profiles]
+    print(
+        json.dumps(
+            {
+                "result": "PASS",
+                "schema_copies_identical": True,
+                "jsonschema_checked": _schema_errors({}) is not None,
+                "profiles": results,
+            },
+            indent=2,
+        )
+    )
     return 0
 
 

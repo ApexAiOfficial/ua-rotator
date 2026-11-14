@@ -1,9 +1,12 @@
 """Controlled localhost integration test for the optional Scrapy adapter.
 
 The smoke test never contacts the public internet. It starts a temporary local
-HTTP server, exercises a redirect and a retry through Scrapy's real downloader
-stack, and verifies that the middleware assigns and preserves the configured
-User-Agent across the request lineage.
+HTTP server and runs two crawlers through Scrapy's real downloader stack:
+
+* an identity crawler that exercises a redirect and a retry, verifying that the
+  middleware assigns and preserves the configured User-Agent across the lineage;
+* a refresh crawler with ``UA_ROTATOR_REFRESH_ON = ["retry"]``, verifying that a
+  retried request is sent with a different User-Agent than the failed attempt.
 """
 
 from __future__ import annotations
@@ -11,10 +14,12 @@ from __future__ import annotations
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import urlsplit
 
 DEFAULT_SMOKE_USER_AGENT = "ApexRotatorSmoke/1.0"
+REFRESH_SMOKE_USER_AGENTS = ("ApexRotatorSmoke/refresh-a", "ApexRotatorSmoke/refresh-b")
+_FAIL_ONCE_PATHS = ("/retry", "/refresh")
 
 
 class ScrapySmokeUnavailable(RuntimeError):
@@ -31,23 +36,34 @@ class ScrapySmokeFailure(RuntimeError):
 
 class _SmokeHandler(BaseHTTPRequestHandler):
     records: list[dict[str, Any]] = []
-    retry_hits = 0
+    hits: dict[str, int] = {}
+    lock = threading.Lock()
 
-    def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler API
-        type(self).records.append(
-            {"path": self.path, "user_agent": self.headers.get("User-Agent")}
-        )
+    @classmethod
+    def reset(cls) -> None:
+        with cls.lock:
+            cls.records = []
+            cls.hits = {path: 0 for path in _FAIL_ONCE_PATHS}
+
+    def do_GET(self) -> None:
+        cls = type(self)
+        with cls.lock:
+            cls.records.append(
+                {"path": self.path, "user_agent": self.headers.get("User-Agent")}
+            )
+            first_hit = False
+            if self.path in cls.hits:
+                cls.hits[self.path] += 1
+                first_hit = cls.hits[self.path] == 1
         if self.path == "/start":
             self.send_response(302)
             self.send_header("Location", "/final")
             self.end_headers()
             return
-        if self.path == "/retry":
-            type(self).retry_hits += 1
-            if type(self).retry_hits == 1:
-                self.send_response(503)
-                self.end_headers()
-                return
+        if first_hit:
+            self.send_response(503)
+            self.end_headers()
+            return
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
         self.end_headers()
@@ -79,8 +95,7 @@ def run_scrapy_smoke(
 
     from .scrapy import ScrapyUserAgentMiddleware
 
-    _SmokeHandler.records = []
-    _SmokeHandler.retry_hits = 0
+    _SmokeHandler.reset()
     response_observations: list[dict[str, Any]] = []
     crawler_failures: list[Any] = []
 
@@ -112,7 +127,7 @@ def run_scrapy_smoke(
             super().__init__(**kwargs)
             self.start_urls = [f"{root_url}/start", f"{root_url}/retry"]
 
-        def parse(self, response: Any):
+        def parse(self, response: Any) -> Iterator[dict[str, Any]]:
             response_observations.append(
                 {
                     "path": urlsplit(response.url).path,
@@ -130,10 +145,37 @@ def run_scrapy_smoke(
             )
             yield {"url": response.url}
 
+    class RefreshSpider(scrapy.Spider):
+        name = "apex_ua_rotator_refresh_smoke"
+        custom_settings = {
+            "LOG_LEVEL": "ERROR",
+            "ROBOTSTXT_OBEY": False,
+            "CONCURRENT_REQUESTS": 1,
+            "RETRY_TIMES": 1,
+            "RETRY_HTTP_CODES": [503],
+            "DOWNLOAD_TIMEOUT": 5,
+            "DOWNLOADER_MIDDLEWARES": {
+                ScrapyUserAgentMiddleware: 90,
+                "scrapy.downloadermiddlewares.useragent.UserAgentMiddleware": None,
+            },
+            "UA_ROTATOR_ENTRIES": [(value, 1) for value in REFRESH_SMOKE_USER_AGENTS],
+            "UA_ROTATOR_SCOPE": "request",
+            "UA_ROTATOR_REFRESH_ON": ["retry"],
+        }
+
+        def __init__(self, root_url: str, **kwargs: Any) -> None:
+            super().__init__(**kwargs)
+            self.start_urls = [f"{root_url}/refresh"]
+
+        def parse(self, response: Any) -> Iterator[dict[str, Any]]:
+            yield {"url": response.url}
+
     process = CrawlerProcess(settings={"LOG_LEVEL": "ERROR"})
     crawler = process.create_crawler(SmokeSpider)
-    deferred = process.crawl(crawler, root_url=base_url)
-    deferred.addErrback(lambda failure: crawler_failures.append(failure))
+    refresh_crawler = process.create_crawler(RefreshSpider)
+    for target in (crawler, refresh_crawler):
+        deferred = process.crawl(target, root_url=base_url)
+        deferred.addErrback(lambda failure: crawler_failures.append(failure))
 
     try:
         process.start()
@@ -149,8 +191,11 @@ def run_scrapy_smoke(
         )
         raise RuntimeError(f"Scrapy crawler failed:\n{traceback_text}")
 
-    records = list(_SmokeHandler.records)
+    all_records = list(_SmokeHandler.records)
+    records = [record for record in all_records if record["path"] != "/refresh"]
+    refresh_records = [record for record in all_records if record["path"] == "/refresh"]
     stats = crawler.stats.get_stats()
+    refresh_stats = refresh_crawler.stats.get_stats()
     paths = [record["path"] for record in records]
     final_observation = next(
         (item for item in response_observations if item["path"] == "/final"), None
@@ -158,6 +203,7 @@ def run_scrapy_smoke(
     retry_observation = next(
         (item for item in response_observations if item["path"] == "/retry"), None
     )
+    refresh_user_agents = [record["user_agent"] for record in refresh_records]
 
     redirect_meta_ok = bool(
         final_observation
@@ -171,7 +217,7 @@ def run_scrapy_smoke(
     )
 
     checks = {
-        "retry_endpoint_hit_twice": _SmokeHandler.retry_hits == 2,
+        "retry_endpoint_hit_twice": _SmokeHandler.hits["/retry"] == 2,
         "start_seen": paths.count("/start") == 1,
         "redirect_target_seen": paths.count("/final") == 1,
         "retry_seen_twice": paths.count("/retry") == 2,
@@ -182,6 +228,11 @@ def run_scrapy_smoke(
         "scrapy_retry_count": stats.get("retry/count", 0) == 1,
         "scrapy_retry_meta": retry_meta_ok,
         "scrapy_redirect_meta": redirect_meta_ok,
+        "refresh_endpoint_hit_twice": _SmokeHandler.hits["/refresh"] == 2,
+        "refresh_changed_identity": len(refresh_user_agents) == 2
+        and refresh_user_agents[0] != refresh_user_agents[1]
+        and set(refresh_user_agents) == set(REFRESH_SMOKE_USER_AGENTS),
+        "refresh_counted": refresh_stats.get("ua_rotator/refreshed", 0) == 1,
     }
 
     report = {
@@ -189,13 +240,14 @@ def run_scrapy_smoke(
         "scrapy_version": scrapy.__version__,
         "expected_user_agent": expected_user_agent,
         "checks": checks,
-        "requests_observed": records,
+        "requests_observed": all_records,
         "responses_observed": response_observations,
         "stats": {
             "ua_rotator_selected": stats.get("ua_rotator/selected", 0),
             "ua_rotator_reused": stats.get("ua_rotator/reused", 0),
             "retry_count": stats.get("retry/count", 0),
             "redirect_count_if_reported": stats.get("redirect/count"),
+            "ua_rotator_refreshed": refresh_stats.get("ua_rotator/refreshed", 0),
         },
     }
     if report["result"] != "PASS":
@@ -214,7 +266,7 @@ def main() -> int:
     except ScrapySmokeFailure as exc:
         print(json.dumps(exc.report, indent=2))
         return 1
-    except Exception as exc:  # pragma: no cover - defensive CLI boundary
+    except Exception as exc:  # noqa: BLE001  # pragma: no cover - defensive CLI boundary
         print(
             json.dumps(
                 {

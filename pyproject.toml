@@ -4,28 +4,35 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apex-ua-rotator"
-version = "1.2.1"
+dynamic = ["version"]
 description = "Framework-agnostic weighted User-Agent rotation with an optional Scrapy adapter"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "LicenseRef-Proprietary"
 license-files = ["LICENSE.txt"]
-authors = [{name = "ApexAI"}]
-keywords = ["user-agent", "scrapy", "crawler", "http", "middleware"]
+authors = [{name = "ApexAi"}]
+keywords = ["user-agent", "scrapy", "crawler", "http", "middleware", "rotation", "web-scraping"]
 classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Framework :: Scrapy",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Software Development :: Libraries :: Python Modules",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Typing :: Typed",
 ]
 dependencies = []
 
 [project.optional-dependencies]
 scrapy = ["Scrapy>=2.11,<3"]
-test = ["pytest>=8", "coverage[toml]>=7"]
+test = ["pytest>=8", "coverage[toml]>=7", "jsonschema>=4.18"]
 
 [project.scripts]
 apex-ua-rotator = "apex_ua_rotator.cli:main"
@@ -41,6 +48,9 @@ Issues = "https://github.com/ApexAiOfficial/ua-rotator/issues"
 package-dir = {"" = "src"}
 py-modules = ["user_agent_rotator", "scrapy_user_agent_adapter"]
 include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "apex_ua_rotator.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -64,3 +74,31 @@ omit = [
 [tool.coverage.report]
 show_missing = true
 fail_under = 90
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["build"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "BLE", "RUF"]
+ignore = ["E501", "UP006", "UP007", "UP035", "UP037", "RUF012", "RUF022"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B017", "BLE001"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src/apex_ua_rotator"]
+strict = true
+warn_unreachable = true
+
+# Scrapy is optional. CI type-checks against the real package (it ships
+# py.typed); without it installed, these keep mypy usable locally.
+[[tool.mypy.overrides]]
+module = ["scrapy", "scrapy.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["apex_ua_rotator.smoke"]
+disallow_subclassing_any = false

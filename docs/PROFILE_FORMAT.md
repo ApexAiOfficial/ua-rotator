@@ -32,7 +32,15 @@ A non-empty array. Every entry contains exactly:
 - `user_agent`: a non-empty printable ASCII string with no leading or trailing whitespace;
 - `weight`: a finite, non-negative number.
 
-At least one entry must have a positive weight. Duplicate User-Agent strings are rejected.
+At least one entry must have a positive weight, and the sum of all weights must be finite. Duplicate User-Agent strings are rejected.
+
+## Strict parsing
+
+Files are parsed more strictly than the standard library's defaults:
+
+- duplicate keys in any JSON object are rejected (the standard library silently keeps the last one);
+- `NaN`, `Infinity`, and `-Infinity` literals are rejected (they are not JSON);
+- `schema_version` must be the number `1`, not `true`.
 
 ## Relative weights
 
@@ -73,4 +81,17 @@ An identical copy is kept at the repository root as `user_agent_profiles.schema.
 https://raw.githubusercontent.com/ApexAiOfficial/ua-rotator/main/user_agent_profiles.schema.json
 ```
 
-The schema describes document structure. The loader additionally rejects duplicate User-Agent strings, whitespace-padded values, non-finite weights, and documents with no positive weight.
+The schema describes document structure. The loader additionally rejects duplicate User-Agent strings, whitespace-padded values, non-finite weights, documents with no positive weight, and the strict-parsing cases above.
+
+## Bundled profiles
+
+```bash
+apex-ua-rotator profiles
+```
+
+| File | Revision | Notes |
+|---|---|---|
+| `global_2026-07-31-r2.json` | `2026-07-31.2` | Default since 1.3.0. Corrects the ChromeOS platform token. |
+| `global_2026-07-31.json` | `2026-07-31.1` | Default through 1.2.1. Kept unchanged for reproducibility. |
+
+Bundled snapshots are never edited in place. A correction ships as a numbered revision whose metadata names the file it `supersedes`, and a new market model ships as a new dated file. Pin a snapshot with `UserAgentRotator.from_bundled_profile("global_2026-07-31.json")` or `UA_ROTATOR_BUNDLED_PROFILE`.

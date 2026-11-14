@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import errno
 import json
 import math
 import os
+import random
 import threading
 from pathlib import Path
 
@@ -252,9 +254,9 @@ def test_save_no_clobber_overwrite_permissions_and_missing_parent(tmp_path):
 def test_bundled_profile_and_name_validation():
     rotator = UserAgentRotator.from_bundled_profile()
     assert len(rotator) == 63
-    assert rotator.metadata["profile_revision"] == "2026-07-31.1"
+    assert rotator.metadata["profile_revision"] == "2026-07-31.2"
     assert math.isclose(sum(entry.weight for entry in rotator.entries), 100.0)
-    assert DEFAULT_PROFILE_NAME == "global_2026-07-31.json"
+    assert DEFAULT_PROFILE_NAME == "global_2026-07-31-r2.json"
 
     for invalid in ("", "../x.json", "path/x.json", 123):
         with pytest.raises(ValueError):
@@ -281,3 +283,219 @@ def test_concurrent_select_and_mutation_do_not_corrupt_state():
         thread.join()
     assert errors == []
     assert len(rotator) == 2
+
+
+def test_previous_profile_revision_stays_bundled_for_reproducibility():
+    original = UserAgentRotator.from_bundled_profile("global_2026-07-31.json")
+    revised = UserAgentRotator.from_bundled_profile()
+    assert original.metadata["profile_revision"] == "2026-07-31.1"
+    assert revised.metadata["supersedes"] == "global_2026-07-31.json"
+    changed = {e.user_agent for e in original.entries} ^ {e.user_agent for e in revised.entries}
+    assert changed == {
+        "Mozilla/5.0 (X11; CrOS x86_64 16700.60.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+    }
+    assert [e.weight for e in original.entries] == [e.weight for e in revised.entries]
+
+
+class WrappedRandom:
+    """A non-random.Random RNG: receives raw weights, like pre-1.3 releases."""
+
+    def __init__(self, seed):
+        self.inner = random.Random(seed)
+        self.calls = []
+
+    def choices(self, population, weights=None, *, cum_weights=None, k=1):
+        self.calls.append((weights is not None, cum_weights is not None))
+        return self.inner.choices(population, weights=weights, cum_weights=cum_weights, k=k)
+
+
+def test_cumulative_fast_path_matches_raw_weight_path_for_same_seed():
+    fast = UserAgentRotator.from_bundled_profile(rng=random.Random(42))
+    wrapped_rng = WrappedRandom(42)
+    compatible = UserAgentRotator.from_bundled_profile(rng=wrapped_rng)
+    assert [fast.select() for _ in range(500)] == [compatible.select() for _ in range(500)]
+    assert set(wrapped_rng.calls) == {(True, False)}
+
+
+def test_random_subclass_overriding_choices_keeps_raw_weights():
+    class Custom(random.Random):
+        seen = []
+
+        def choices(self, population, weights=None, *, cum_weights=None, k=1):
+            type(self).seen.append(cum_weights)
+            return super().choices(population, weights=weights, cum_weights=cum_weights, k=k)
+
+    UserAgentRotator(["UA-A", "UA-B"], rng=Custom(1)).select()
+    assert Custom.seen == [None]
+
+
+def test_refresh_per_request_never_repeats_previous_when_alternative_exists():
+    rotator = UserAgentRotator([("UA-A", 1000), ("UA-B", 1)], rng=random.Random(3))
+    assert all(rotator.refresh(previous="UA-A") == "UA-B" for _ in range(200))
+    # Unknown or zero-weight "previous" values do not restrict selection.
+    assert rotator.refresh(previous="not-in-profile") in {"UA-A", "UA-B"}
+
+
+def test_refresh_falls_back_when_previous_is_the_only_positive_entry():
+    rotator = UserAgentRotator([("UA-A", 1), ("UA-B", 0)], rng=random.Random(3))
+    assert rotator.refresh(previous="UA-A") == "UA-A"
+
+
+def test_refresh_per_session_replaces_and_converges():
+    rotator = UserAgentRotator(["UA-A", "UA-B", "UA-C"], policy="per_session", rng=random.Random(5))
+    first = rotator.select()
+    replacement = rotator.refresh(previous=first)
+    assert replacement != first
+    assert rotator.select() == replacement
+    # A second caller reporting the same stale identity adopts the replacement.
+    assert rotator.refresh(previous=first) == replacement
+    # Without "previous", the current sticky value is the one avoided.
+    third = rotator.refresh()
+    assert third != replacement
+    assert rotator.select() == third
+
+
+def test_refresh_per_session_before_any_selection():
+    rotator = UserAgentRotator(["UA-A", "UA-B"], policy="per_session", rng=random.Random(5))
+    chosen = rotator.refresh(previous="UA-A")
+    assert chosen == "UA-B"
+    assert rotator.select() == "UA-B"
+
+
+def test_refresh_per_key_replaces_converges_and_respects_lru():
+    rotator = UserAgentRotator(
+        ["UA-A", "UA-B", "UA-C"], policy="per_key", max_key_cache=2, rng=random.Random(9)
+    )
+    with pytest.raises(ValueError, match="key is required"):
+        rotator.refresh()
+    with pytest.raises(ValueError, match="hashable"):
+        rotator.refresh(key=[])
+    with pytest.raises(ValueError, match="previous"):
+        rotator.refresh(key="k", previous=1)  # type: ignore[arg-type]
+
+    first = rotator.select(key="example.com")
+    replacement = rotator.refresh(key="example.com", previous=first)
+    assert replacement != first
+    assert rotator.select(key="example.com") == replacement
+    assert rotator.refresh(key="example.com", previous=first) == replacement
+    assert rotator.refresh(key="example.com") != replacement
+
+    rotator.select(key="two")
+    rotator.refresh(key="three", previous="UA-A")
+    assert len(rotator._key_cache) == 2
+    assert "example.com" not in rotator._key_cache
+
+
+def test_concurrent_refreshes_in_one_scope_converge_on_one_replacement():
+    rotator = UserAgentRotator(
+        [f"UA-{index}" for index in range(10)], policy="per_key", rng=random.Random(11)
+    )
+    failed = rotator.select(key="example.com")
+    results: list[str] = []
+    barrier = threading.Barrier(8)
+
+    def worker():
+        barrier.wait()
+        results.append(rotator.refresh(key="example.com", previous=failed))
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert len(set(results)) == 1
+    assert results[0] != failed
+
+
+def test_weight_sum_overflow_and_huge_integers_are_rejected_at_load():
+    with pytest.raises(ValueError, match="sum"):
+        UserAgentRotator([("UA-A", 1e308), ("UA-B", 1e308)])
+    with pytest.raises(ValueError, match="Invalid weight"):
+        UserAgentRotator([("UA-A", 10**400)])
+
+
+def test_strict_json_rejects_duplicate_keys_constants_and_boolean_version(tmp_path):
+    duplicate = tmp_path / "dup.json"
+    duplicate.write_text(
+        '{"schema_version": 1, "metadata": {}, "entries": '
+        '[{"user_agent": "UA-A", "user_agent": "UA-B", "weight": 1}]}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="duplicate object key 'user_agent'"):
+        UserAgentRotator.from_file(duplicate)
+
+    constant = tmp_path / "nan.json"
+    constant.write_text(
+        '{"schema_version": 1, "metadata": {}, "entries": [{"user_agent": "UA", "weight": NaN}]}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="non-finite number NaN"):
+        UserAgentRotator.from_file(constant)
+
+    with pytest.raises(ValueError, match="schema_version True"):
+        UserAgentRotator.from_file(write_document(tmp_path, document(schema_version=True), "bool.json"))
+
+
+def test_save_falls_back_when_hard_links_are_unsupported(tmp_path, monkeypatch):
+    def no_links(*args, **kwargs):
+        raise PermissionError(errno.EPERM, "Operation not permitted")
+
+    from apex_ua_rotator import core
+
+    monkeypatch.setattr(core, "_IS_WINDOWS", False)  # exercise the reservation path
+    monkeypatch.setattr(os, "link", no_links)
+    rotator = UserAgentRotator(["UA-A"], metadata={"x": 1})
+    path = tmp_path / "profiles.json"
+    rotator.save(path)
+    assert UserAgentRotator.from_file(path).to_document() == rotator.to_document()
+    original = path.read_bytes()
+    with pytest.raises(FileExistsError):
+        rotator.save(path)
+    assert path.read_bytes() == original
+    assert [p.name for p in tmp_path.iterdir()] == ["profiles.json"]
+
+
+def test_save_falls_back_when_link_is_missing_and_cleans_up_on_failure(tmp_path, monkeypatch):
+    from apex_ua_rotator import core
+
+    monkeypatch.setattr(core, "_IS_WINDOWS", False)  # exercise the reservation path
+    monkeypatch.delattr(os, "link")
+    rotator = UserAgentRotator(["UA-A"])
+    rotator.save(tmp_path / "a.json")
+    assert UserAgentRotator.from_file(tmp_path / "a.json").entries[0].user_agent == "UA-A"
+
+    def failing_replace(src, dst):
+        raise OSError(errno.EIO, "simulated I/O error")
+
+    monkeypatch.setattr(os, "replace", failing_replace)
+    with pytest.raises(OSError, match="simulated"):
+        rotator.save(tmp_path / "b.json")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["a.json"]
+
+
+def test_windows_fallback_uses_atomic_no_clobber_rename(tmp_path, monkeypatch):
+    def no_links(*args, **kwargs):
+        raise OSError(errno.EINVAL, "Incorrect function")
+
+    renamed = []
+    real_rename = os.rename
+
+    def tracking_rename(src, dst):
+        renamed.append((Path(src).name, Path(dst).name))
+        if Path(dst).exists():
+            raise FileExistsError(errno.EEXIST, "exists", str(dst))
+        real_rename(src, dst)
+
+    monkeypatch.setattr(os, "link", no_links)
+    from apex_ua_rotator import core
+
+    monkeypatch.setattr(core, "_IS_WINDOWS", True)
+    monkeypatch.setattr(os, "rename", tracking_rename)
+    rotator = UserAgentRotator(["UA-A"])
+    path = tmp_path / "profiles.json"
+    rotator.save(path)
+    assert renamed and renamed[0][1] == "profiles.json"
+    with pytest.raises(FileExistsError):
+        rotator.save(path)
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["profiles.json"]

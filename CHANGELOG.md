@@ -1,17 +1,48 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-11-14
 
-Repository and documentation changes for the public source-available release. Selection, validation, and middleware behavior are unchanged.
+Reliability, Scrapy-integration, and release-engineering upgrade. The public Python API is backward compatible: existing code, settings, compatibility modules, and pinned profile names keep working. Behavior changes are listed under **Changed**.
+
+### Added
+
+- `UserAgentRotator.refresh(key=..., previous=...)` replaces a failed identity with a *different* User-Agent whenever another positively weighted entry exists. For sticky policies it converges: when the scope already moved on from `previous`, the current replacement is returned instead of drawing again.
+- Corrected default profile `global_2026-07-31-r2.json` (revision `2026-07-31.2`). Its ChromeOS entry now uses the frozen reduced platform token `X11; CrOS x86_64 14541.0.0` that Chrome actually sends. Revision 1 stays bundled, unchanged, for reproducibility.
+- Scrapy: `UA_ROTATOR_ENABLED = False` disables the middleware cleanly (`NotConfigured`).
+- Scrapy: an INFO log line at startup records the effective source, profile count, scope, and refresh rules.
+- Scrapy: a startup warning when `UA_ROTATOR_SCOPE = "proxy"` runs before `HttpProxyMiddleware`, which would hide environment proxies from the first attempt.
+- Scrapy: `ua_rotator/replaced_default_header` statistic.
+- CLI: `apex-ua-rotator profiles` lists bundled snapshots; `sample --seed` gives reproducible output; `info`/`validate` report `profile_age_days`.
+- Launchers: `--locate-only` prints the selected installer and its SHA-256 without running it; `--expect-sha256` runs only an installer with a known checksum.
+- One-file installer: `--verify-payload` checks the embedded wheel without installing.
+- Release engineering: `tools/build_release.py` builds every artifact from a clean `git archive` export with a pinned build backend and `SOURCE_DATE_EPOCH`, so rebuilds are byte-identical. It also validates the build and writes `RELEASE_VALIDATION.{json,md}`. `tools/profile_lint.py` checks browser-token consistency.
+- CI on GitHub Actions: Python 3.10–3.14 on Linux plus Windows and macOS, real Scrapy at the minimum (2.11) and latest versions, ruff, strict mypy, a reproducible-build job, and a release workflow that re-verifies published assets and rebuilds them from the tag.
+- Examples: standard-library HTTP client with refresh on 403/429, a runnable spider, and Playwright browser contexts.
+- An sdist and a reproducible offline bundle are published alongside the wheel and one-file installer.
 
 ### Changed
+
+- Scrapy: refreshing on retry or redirect never re-sends the identity that was in use, and concurrent failures in one sticky scope converge on one replacement instead of cycling through several.
+- Scrapy: conflicting profile sources (`UA_ROTATOR_FILE`, `UA_ROTATOR_ENTRIES`, `UA_ROTATOR_BUNDLED_PROFILE`) now raise `ValueError` at startup. They previously raised `NotConfigured`, which silently disabled rotation for the whole crawl.
+- Scrapy: a User-Agent equal to the `USER_AGENT` setting or `DEFAULT_REQUEST_HEADERS` is treated as a framework default and replaced, so enabling Scrapy's built-in middleware, or ordering it first, no longer disables rotation.
+- Scrapy: `proxy` scope keys are normalized to scheme, host, and port. Credentials in `meta["proxy"]` are never copied into the lineage record, not even as a hash, and identity stays stable when `HttpProxyMiddleware` strips them.
+- Scrapy: a redirect that leaves its scope adopts the destination scope's identity; refresh rules apply only within a scope.
+- Scrapy: `cookiejar` scope uses `None` for requests without a `cookiejar` key, matching `CookiesMiddleware`. Previously that case shared a key with an explicit `cookiejar=0`.
+- Scrapy: requests without a hostname (`data:`, `file:`) share one `domain`-scope identity instead of failing with `ValueError`.
+- Core: profile documents reject duplicate JSON keys, `NaN`/`Infinity` literals, and a boolean `schema_version`; weights whose sum overflows are rejected at load time instead of failing inside `random.choices`.
+- Core: selection with `random.Random` instances uses precomputed cumulative weights. A per-request `select()` on the bundled 63-entry profile measured 1.8 µs against 5.0 µs before (CPython 3.12), with identical results for the same seed; the gap widens as profiles grow. Custom RNG objects still receive raw weights.
+- Core: `save()` keeps its no-clobber guarantee on filesystems without hard links (FAT/exFAT, Android shared storage). Windows uses an atomic no-clobber rename; other platforms reserve the name exclusively before an atomic replace. It previously failed there.
+- One-file installer: the build is reproducible, carries a shebang (it can run directly on POSIX), and records the version in its manifest. Installation is verified in a fresh interpreter, so `--user` installs are detected correctly and a shadowing older copy is reported. pip failures include a PEP 668 hint.
+- Launchers: candidates are read once, with a size bound, and checked before they run. Corrupt or truncated files, tampered payloads, and installers whose file-name version disagrees with the embedded wheel are skipped instead of aborting the search. Ranking uses the embedded version (any number of components), so renamed downloads rank correctly. The exact bytes that were checked run from a private temporary copy, closing the window between verification and execution.
+- Packaging: the version is single-sourced from `apex_ua_rotator.__version__`.
+
+### Repository
 
 - Replaced the internal `apexai.local` JSON Schema `$id` with the public repository URL.
 - Added project URLs and an explicit `license-files` entry to the package metadata.
 - Documented that the code is source-available under the proprietary license and that use requires a separate written agreement.
-- Corrected installation instructions: release artifacts are not published, so the README now shows how to install from a checkout and how to build the wheel and one-file installer.
-- Documented the test-dependency install step and the repository layout.
-- The Scrapy smoke test's missing-dependency message now suggests installing Scrapy directly instead of `apex-ua-rotator[scrapy]`, which would resolve against PyPI where this package is not published.
+- Release artifacts are now published on GitHub Releases; the README documents both those downloads and installing from source.
+- The Scrapy smoke test's missing-dependency message suggests installing Scrapy directly.
 - Expanded `.gitignore` to cover environment files, credentials and keys, virtual environments, tool caches, and build artifacts.
 
 ## 1.2.1 — 2026-08-01

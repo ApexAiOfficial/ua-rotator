@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests · Python ${{ matrix.python }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: windows-latest
+            python: "3.12"
+          - os: macos-latest
+            python: "3.12"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package and test dependencies
+        run: python -m pip install --disable-pip-version-check ".[test]"
+      - name: Compile
+        run: python -m compileall -q src tests tools examples launchers
+      - name: Test with branch coverage
+        run: python -m coverage run -m pytest -q
+      - name: Coverage gate (90% branch)
+        run: python -m coverage report
+      - name: Validate bundled profiles
+        run: python tools/validate_profiles.py
+
+  scrapy:
+    name: Scrapy ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Scrapy 2.11 predates current w3lib/Twisted/parsel releases, so the
+          # minimum-version job pins contemporaneous transitive dependencies.
+          - label: "2.11 (minimum supported)"
+            python: "3.11"
+            spec: "Scrapy==2.11.2 w3lib<2.2 Twisted<24.11 parsel<1.10"
+          - label: "latest"
+            python: "3.13"
+            spec: "Scrapy>=2.11,<3"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package, test dependencies, and Scrapy
+        env:
+          SPEC: ${{ matrix.spec }}
+        run: |
+          # $SPEC is intentionally unquoted: one argument per requirement.
+          python -m pip install --disable-pip-version-check ".[test]" $SPEC
+          python -c "import scrapy; print('Scrapy', scrapy.__version__)"
+      - name: Adapter tests against real Scrapy components
+        run: python -m pytest -q tests/test_scrapy_real.py tests/test_scrapy_adapter.py tests/test_smoke.py
+      - name: Localhost Scrapy smoke test (installed package)
+        run: python -m apex_ua_rotator smoke-scrapy
+
+  lint:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install linters and Scrapy (for type information)
+        run: python -m pip install --disable-pip-version-check "ruff==0.17.5" "mypy==2.4.1" "Scrapy>=2.11,<3"
+      - run: ruff check .
+      - run: mypy
+
+  build:
+    name: Reproducible release build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Build release artifacts
+        run: python tools/build_release.py --out dist/release
+      - name: Independent rebuild must be byte-identical
+        run: python tools/build_release.py --out dist/rebuild --compare dist/release/SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-artifacts
+          path: dist/release/
+          retention-days: 7
