@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.1 — 2026-11-14
+
+### Changed
+
+- **License:** UA Rotator is now open source under the Apache License 2.0 (`LICENSE`, `NOTICE`; package metadata `License-Expression: Apache-2.0`). Releases up to and including 1.4.0 remain under their original proprietary terms. Code, profiles, and behavior are unchanged from 1.4.0.
+
+### Added
+
+- `CONTRIBUTING.md`: development setup, checks, profile-curation rules, and Developer Certificate of Origin sign-off for contributions.
+
 ## 1.4.0 — 2026-11-14
 
 Profile refresh. The public Python API is unchanged; only the default profile moves. Pin `global_2026-07-31-r2.json` to keep 1.3.0's output.

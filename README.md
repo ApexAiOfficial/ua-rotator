@@ -17,7 +17,7 @@
 [![Core dependencies](https://img.shields.io/badge/core%20dependencies-0-62c795)](#why-ua-rotator)
 [![Typed](https://img.shields.io/badge/typed-mypy%20strict-2f6fd6)](pyproject.toml)
 [![Reproducible builds](https://img.shields.io/badge/builds-reproducible-72aaff)](docs/VALIDATION.md#verifying-a-published-release)
-[![License](https://img.shields.io/badge/license-source--available-e5a352)](#license)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-e5a352)](LICENSE)
 
 **[Install](#installation)** · **[Quick start](#quick-start)** · **[Scrapy](#scrapy-integration)** · **[Docs](#documentation)** · **[Releases](https://github.com/ApexAiOfficial/ua-rotator/releases)**
 
@@ -62,18 +62,18 @@ UA Rotator is distributed through [GitHub Releases](https://github.com/ApexAiOff
 **Wheel (pip):**
 
 ```bash
-python -m pip install "https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.4.0/apex_ua_rotator-1.4.0-py3-none-any.whl"
+python -m pip install "https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.4.1/apex_ua_rotator-1.4.1-py3-none-any.whl"
 
 # with the optional Scrapy dependency
-python -m pip install "apex-ua-rotator[scrapy] @ https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.4.0/apex_ua_rotator-1.4.0-py3-none-any.whl"
+python -m pip install "apex-ua-rotator[scrapy] @ https://github.com/ApexAiOfficial/ua-rotator/releases/download/v1.4.1/apex_ua_rotator-1.4.1-py3-none-any.whl"
 ```
 
-**One-file installer:** download `apex-ua-rotator-1.4.0-one-shot.pyz` from the release, then run:
+**One-file installer:** download `apex-ua-rotator-1.4.1-one-shot.pyz` from the release, then run:
 
 ```bash
-python3 apex-ua-rotator-1.4.0-one-shot.pyz                  # install, verify, smoke-test Scrapy if present
-python3 apex-ua-rotator-1.4.0-one-shot.pyz --install-only
-python3 apex-ua-rotator-1.4.0-one-shot.pyz --verify-payload # check the embedded wheel only
+python3 apex-ua-rotator-1.4.1-one-shot.pyz                  # install, verify, smoke-test Scrapy if present
+python3 apex-ua-rotator-1.4.1-one-shot.pyz --install-only
+python3 apex-ua-rotator-1.4.1-one-shot.pyz --verify-payload # check the embedded wheel only
 ```
 
 The installer checks the embedded wheel's SHA-256 before installing and verifies the result in a fresh interpreter. If you don't know where the file was saved, the [phone and computer locators](launchers/README.md) find the newest valid copy, print its checksum, and run exactly the bytes they checked (`--expect-sha256` pins a release).
@@ -255,8 +255,8 @@ UA Rotator changes **one HTTP header**. It does not coordinate Client Hints, TLS
 - **Releases:** built from a clean `git archive` with a pinned backend and `SOURCE_DATE_EPOCH`. Each release ships `SHA256SUMS` and a validation report, and a workflow re-verifies the assets and rebuilds them from the tag.
 
 ```bash
-gh release download v1.4.0 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
-git checkout v1.4.0
+gh release download v1.4.1 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
+git checkout v1.4.1
 python3 tools/build_release.py --out rebuild --compare published/SHA256SUMS   # byte-identical or it fails
 ```
 
@@ -271,12 +271,17 @@ python3 tools/build_release.py --out rebuild --compare published/SHA256SUMS   # 
 | [Locator launchers](launchers/README.md) | Finding and running the one-file installer on phones and computers |
 | [Changelog](CHANGELOG.md) | Release history |
 | [Security policy](SECURITY.md) | Reporting vulnerabilities privately |
+| [Contributing](CONTRIBUTING.md) | Development setup, checks, profile curation, DCO sign-off |
 
 Earlier integrations keep working through the compatibility modules `user_agent_rotator` and `scrapy_user_agent_adapter`; new code should import `apex_ua_rotator`.
 
 ## License
 
-UA Rotator is **source-available, not open source**. The code is public so it can be reviewed and audited, but using, copying, modifying, or redistributing it requires a separate written agreement with ApexAi. See [`LICENSE.txt`](LICENSE.txt), and contact us through [apexaiofficial.com/contact](https://apexaiofficial.com/contact) about licensing.
+UA Rotator is open source under the [Apache License 2.0](LICENSE). You may use, modify, and redistribute it, including in commercial and closed-source products, provided you keep the license and the [`NOTICE`](NOTICE) file and mark files you change. The license includes an express patent grant from every contributor.
+
+Releases up to and including 1.4.0 were published under ApexAi's earlier proprietary license; 1.4.1 and later are Apache-2.0.
+
+The Apache License does not grant rights to the ApexAi name or logo (section 6). Contributions are welcome; see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 <div align="center">
 <br>
