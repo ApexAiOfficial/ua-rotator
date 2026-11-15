@@ -104,7 +104,7 @@ def test_version_constant_matches_package_metadata_and_changelog():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
-    assert __version__ == "1.4.0"
+    assert __version__ == "1.4.1"
     assert f"## {__version__} " in (root / "CHANGELOG.md").read_text(encoding="utf-8")
 
 

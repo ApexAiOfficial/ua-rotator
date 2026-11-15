@@ -16,7 +16,7 @@ Usage (from the repository root)::
     python3 tools/build_release.py --validate --scrapy-python /path/to/venv/bin/python
 
     # Rebuild and compare against a release's published checksums
-    gh release download v1.4.0 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
+    gh release download v1.4.1 --repo ApexAiOfficial/ua-rotator --pattern SHA256SUMS --dir published
     python3 tools/build_release.py --out rebuild --compare published/SHA256SUMS
 
 ``--validate`` needs pytest, coverage, and jsonschema in the running
@@ -285,7 +285,7 @@ def _build(out: Path, *, include_uncommitted: bool, epoch: int | None) -> dict[s
 
         top = f"Apex_UA_Rotator_{version}"
         bundle: list[tuple[str, Path]] = [
-            (f"{top}/{name}", tree / name) for name in ("README.md", "CHANGELOG.md", "LICENSE.txt")
+            (f"{top}/{name}", tree / name) for name in ("README.md", "CHANGELOG.md", "LICENSE", "NOTICE")
         ]
         bundle += [(f"{top}/install/{p.name}", p) for p in (wheel, sdist, pyz)]
         bundle += [(f"{top}/launchers/{p.name}", p) for p in sorted((tree / "launchers").iterdir())]

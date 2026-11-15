@@ -6,8 +6,8 @@ Security fixes are made on the latest release line. Upgrade to the newest releas
 
 | Version | Supported |
 |---|---|
-| 1.3.x | Yes |
-| < 1.3 | No |
+| 1.4.x | Yes |
+| < 1.4 | No |
 
 ## Reporting a vulnerability
 
